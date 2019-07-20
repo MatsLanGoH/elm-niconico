@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, h1, img, text)
-import Html.Attributes exposing (src)
-import Html.Events exposing (onClick, onFocus)
+import Html exposing (Html, button, div, h1, img, input, text, p)
+import Html.Attributes exposing (src, value )
+import Html.Events exposing (onClick, onFocus, onInput)
 
 
 
@@ -13,6 +13,7 @@ import Html.Events exposing (onClick, onFocus)
 type alias Model =
     { selectedMood : Mood
     , currentMood : Mood
+    , currentInput : String
     }
 
 
@@ -36,6 +37,7 @@ init =
     in
     ( { selectedMood = noMood
       , currentMood = noMood
+      , currentInput = ""
       }
     , Cmd.none
     )
@@ -47,6 +49,7 @@ init =
 
 type Msg
     = SelectMood MoodRating
+    | UpdateCurrentInput String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,6 +66,8 @@ update msg model =
                     }
             in
             ( { model | currentMood = newCurrentMood }, Cmd.none )
+        UpdateCurrentInput input ->
+            ( { model | currentInput = input}, Cmd.none )
 
 
 
@@ -73,21 +78,29 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Elm Niconico" ]
-        , viewMoodSelector model.currentMood
+        , viewMoodSelector model model.currentMood
         ]
 
 
-viewMoodSelector : Mood -> Html Msg
-viewMoodSelector mood =
+viewMoodSelector : Model -> Mood -> Html Msg
+viewMoodSelector model mood =
     div []
         [ div []
-            [ div [ onClick (SelectMood Happy) ] [ h1 [] [ text "😃" ] ]
+            [ h1 [ onClick (SelectMood Happy) ] [ text "😃" ] 
             , h1 [ onClick (SelectMood Neutral) ] [ text "😐" ]
             , h1 [ onClick (SelectMood Bad) ] [ text "😐" ]
             ]
+        , div []
+            [ div []
+                [ input [ value model.currentInput, onInput UpdateCurrentInput ] [] ]
+            ]
+        , div []
+            [ button [ ] [text "Submit"] ]
         , Html.hr [] []
         , div []
-            [ h1 [] [ text ("Current Mood: " ++ showMood mood.moodRating) ] ]
+            [ h1 [] [ text ("Current Mood: ")]
+            , p [] [ text (showMood mood.moodRating)]
+            , p [] [ text model.currentInput ] ]
         ]
 
 
