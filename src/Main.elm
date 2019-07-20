@@ -1,20 +1,34 @@
-module Main exposing (..)
+module Main exposing (main)
 
 import Browser
-import Html exposing (Html, text, div, h1, img)
+import Html exposing (Html, button, div, h1, img, text)
 import Html.Attributes exposing (src)
+import Html.Events exposing (onClick, onFocus)
+
 
 
 ---- MODEL ----
 
 
 type alias Model =
-    {}
+    { selectedMood : Maybe Mood
+    , currentMood : Maybe Mood
+    }
+
+
+type Mood
+    = Happy
+    | Neutral
+    | Bad
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( {}, Cmd.none )
+    ( { selectedMood = Nothing
+      , currentMood = Nothing
+      }
+    , Cmd.none
+    )
 
 
 
@@ -22,12 +36,14 @@ init =
 
 
 type Msg
-    = NoOp
+    = SelectMood Mood
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        SelectMood mood ->
+            ( { model | currentMood = Just mood }, Cmd.none )
 
 
 
@@ -37,9 +53,34 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ img [ src "/logo.svg" ] []
-        , h1 [] [ text "Your Elm App is working!" ]
+        [ h1 [] [ text "Elm Niconico" ]
+        , div []
+            [ div [ onClick (SelectMood Happy) ] [ h1 [] [ text "😃" ] ]
+            , h1 [ onClick (SelectMood Neutral) ] [ text "😐" ]
+            , h1 [ onClick (SelectMood Bad) ] [ text "😐" ]
+            ]
+        , Html.hr [] []
+        , div []
+            [ h1 [] [ text ("Current Mood: " ++ showMood model.currentMood) ] ]
         ]
+
+
+showMood : Maybe Mood -> String
+showMood maybeMood =
+    case maybeMood of
+        Just mood ->
+            case mood of
+                Happy ->
+                    "Happy"
+
+                Neutral ->
+                    "Neutral"
+
+                Bad ->
+                    "Bad"
+
+        Nothing ->
+            "Undecided."
 
 
 
