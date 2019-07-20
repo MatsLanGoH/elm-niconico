@@ -54,7 +54,14 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Elm Niconico" ]
-        , div []
+        , viewMoodSelector model
+        ]
+
+
+viewMoodSelector : Model -> Html Msg
+viewMoodSelector model =
+    div []
+        [ div []
             [ div [ onClick (SelectMood Happy) ] [ h1 [] [ text "😃" ] ]
             , h1 [ onClick (SelectMood Neutral) ] [ text "😐" ]
             , h1 [ onClick (SelectMood Bad) ] [ text "😐" ]
