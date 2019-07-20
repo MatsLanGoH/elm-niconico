@@ -11,12 +11,18 @@ import Html.Events exposing (onClick, onFocus)
 
 
 type alias Model =
-    { selectedMood : Maybe Mood
-    , currentMood : Maybe Mood
+    { selectedMood : Mood
+    , currentMood : Mood
     }
 
 
-type Mood
+type alias Mood =
+    { moodRating : Maybe MoodRating
+    , moodComment : String
+    }
+
+
+type MoodRating
     = Happy
     | Neutral
     | Bad
@@ -24,8 +30,12 @@ type Mood
 
 init : ( Model, Cmd Msg )
 init =
-    ( { selectedMood = Nothing
-      , currentMood = Nothing
+    let
+        noMood =
+            { moodRating = Nothing, moodComment = "" }
+    in
+    ( { selectedMood = noMood
+      , currentMood = noMood
       }
     , Cmd.none
     )
@@ -36,14 +46,23 @@ init =
 
 
 type Msg
-    = SelectMood Mood
+    = SelectMood MoodRating
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SelectMood mood ->
-            ( { model | currentMood = Just mood }, Cmd.none )
+            let
+                oldCurrentMood =
+                    model.currentMood
+
+                newCurrentMood =
+                    { oldCurrentMood
+                        | moodRating = Just mood
+                    }
+            in
+            ( { model | currentMood = newCurrentMood }, Cmd.none )
 
 
 
@@ -54,12 +73,12 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Elm Niconico" ]
-        , viewMoodSelector model
+        , viewMoodSelector model.currentMood
         ]
 
 
-viewMoodSelector : Model -> Html Msg
-viewMoodSelector model =
+viewMoodSelector : Mood -> Html Msg
+viewMoodSelector mood =
     div []
         [ div []
             [ div [ onClick (SelectMood Happy) ] [ h1 [] [ text "😃" ] ]
@@ -68,15 +87,15 @@ viewMoodSelector model =
             ]
         , Html.hr [] []
         , div []
-            [ h1 [] [ text ("Current Mood: " ++ showMood model.currentMood) ] ]
+            [ h1 [] [ text ("Current Mood: " ++ showMood mood.moodRating) ] ]
         ]
 
 
-showMood : Maybe Mood -> String
-showMood maybeMood =
-    case maybeMood of
-        Just mood ->
-            case mood of
+showMood : Maybe MoodRating -> String
+showMood maybeMoodRating =
+    case maybeMoodRating of
+        Just moodRating ->
+            case moodRating of
                 Happy ->
                     "Happy"
 
