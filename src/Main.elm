@@ -5,6 +5,10 @@ import Html exposing (Html, button, div, h1, img, input, text, p)
 import Html.Attributes exposing (src, value )
 import Html.Events exposing (onClick, onFocus, onInput)
 
+---- TODO ----
+
+-- selectMood should only select a MoodRating (only keep for selection)
+-- submitButton should save MoodRating and Message and Timestamp to a Mood
 
 
 ---- MODEL ----
