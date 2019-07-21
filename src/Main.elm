@@ -1,22 +1,34 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, h1, img, text)
-import Html.Attributes exposing (src)
-import Html.Events exposing (onClick, onFocus)
+import Html exposing (Html, button, div, h1, img, input, p, text)
+import Html.Attributes exposing (disabled, src, value)
+import Html.Events exposing (onClick, onFocus, onInput)
+import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 
 
 
+---- TODO ----
+-- submitButton should save MoodRating and Message and Timestamp to a Mood
 ---- MODEL ----
 
 
 type alias Model =
-    { selectedMood : Maybe Mood
-    , currentMood : Maybe Mood
+    { currentMood : Mood
+    , currentMoodRating : Maybe MoodRating
+    , currentInput : String
+    , currentTimeStamp : Time.Posix
     }
 
 
-type Mood
+type alias Mood =
+    { moodRating : Maybe MoodRating
+    , moodComment : String
+    , moodTimeStamp : Time.Posix
+    }
+
+
+type MoodRating
     = Happy
     | Neutral
     | Bad
@@ -24,8 +36,14 @@ type Mood
 
 init : ( Model, Cmd Msg )
 init =
-    ( { selectedMood = Nothing
-      , currentMood = Nothing
+    let
+        noMood =
+            { moodRating = Nothing, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
+    in
+    ( { currentMood = noMood
+      , currentMoodRating = Nothing
+      , currentInput = ""
+      , currentTimeStamp = Time.millisToPosix 0
       }
     , Cmd.none
     )
@@ -36,14 +54,38 @@ init =
 
 
 type Msg
-    = SelectMood Mood
+    = SelectMood MoodRating
+    | UpdateCurrentInput String
+    | SaveMood
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        SelectMood mood ->
-            ( { model | currentMood = Just mood }, Cmd.none )
+        SelectMood moodRating ->
+            ( { model | currentMoodRating = Just moodRating }, Cmd.none )
+
+        UpdateCurrentInput input ->
+            ( { model | currentInput = input }, Cmd.none )
+
+        SaveMood ->
+            let
+                currentMood =
+                    model.currentMood
+
+                newMood =
+                    { currentMood
+                        | moodRating = model.currentMoodRating
+                        , moodComment = model.currentInput
+                    }
+            in
+            ( { model
+                | currentMood = newMood
+                , currentMoodRating = Nothing
+                , currentInput = ""
+              }
+            , Cmd.none
+            )
 
 
 
@@ -54,22 +96,45 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Elm Niconico" ]
-        , div []
-            [ div [ onClick (SelectMood Happy) ] [ h1 [] [ text "😃" ] ]
-            , h1 [ onClick (SelectMood Neutral) ] [ text "😐" ]
-            , h1 [ onClick (SelectMood Bad) ] [ text "😐" ]
-            ]
-        , Html.hr [] []
-        , div []
-            [ h1 [] [ text ("Current Mood: " ++ showMood model.currentMood) ] ]
+        , viewMoodSelector model model.currentMood
         ]
 
 
-showMood : Maybe Mood -> String
-showMood maybeMood =
-    case maybeMood of
-        Just mood ->
-            case mood of
+viewMoodSelector : Model -> Mood -> Html Msg
+viewMoodSelector model mood =
+    div []
+        [ div []
+            [ h1 [ onClick (SelectMood Happy) ] [ text ":)" ]
+            , h1 [ onClick (SelectMood Neutral) ] [ text ":|" ]
+            , h1 [ onClick (SelectMood Bad) ] [ text ":(" ]
+            ]
+        , div []
+            [ div []
+                [ p [] [ text "How do you feel?" ]
+                , input [ value model.currentInput, onInput UpdateCurrentInput ] []
+                ]
+            ]
+        , div []
+            [ button
+                [ disabled (not <| hasMood model.currentMoodRating)
+                , onClick SaveMood
+                ]
+                [ text "Submit" ]
+            ]
+        , Html.hr [] []
+        , div []
+            [ h1 [] [ text "Current Mood: " ]
+            , p [] [ text (showMood mood.moodRating) ]
+            , p [] [ text mood.moodComment ]
+            ]
+        ]
+
+
+showMood : Maybe MoodRating -> String
+showMood maybeMoodRating =
+    case maybeMoodRating of
+        Just moodRating ->
+            case moodRating of
                 Happy ->
                     "Happy"
 
@@ -81,6 +146,31 @@ showMood maybeMood =
 
         Nothing ->
             "Undecided."
+
+
+hasMood : Maybe MoodRating -> Bool
+hasMood maybeMoodRating =
+    case maybeMoodRating of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+
+---- UTILS ----
+
+
+toUtcString : Time.Posix -> String
+toUtcString date =
+    String.fromInt (Time.toYear utc date)
+        ++ "/"
+        ++ String.fromInt (Time.toHour utc date)
+        ++ ":"
+        ++ String.fromInt (Time.toMinute utc date)
+        ++ ":"
+        ++ String.fromInt (Time.toSecond utc date)
 
 
 
