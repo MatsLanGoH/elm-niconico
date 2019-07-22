@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser
+import Debug
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
@@ -17,7 +18,7 @@ import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 
 type alias Model =
     { currentMood : Mood
-    , currentMoodRating : Maybe MoodRating
+    , currentMoodRating : MoodRating
     , currentInput : String
     , currentTimeStamp : Time.Posix
     , moodList : List Mood
@@ -25,7 +26,7 @@ type alias Model =
 
 
 type alias Mood =
-    { moodRating : Maybe MoodRating
+    { moodRating : MoodRating
     , moodComment : String
     , moodTimeStamp : Time.Posix
     }
@@ -35,16 +36,17 @@ type MoodRating
     = Happy
     | Neutral
     | Bad
+    | Unset
 
 
 init : ( Model, Cmd Msg )
 init =
     let
         noMood =
-            { moodRating = Nothing, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
+            { moodRating = Unset, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
     in
     ( { currentMood = noMood
-      , currentMoodRating = Nothing
+      , currentMoodRating = Unset
       , currentInput = ""
       , currentTimeStamp = Time.millisToPosix 0
       , moodList = []
@@ -67,7 +69,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SelectMood moodRating ->
-            ( { model | currentMoodRating = Just moodRating }, Cmd.none )
+            ( { model | currentMoodRating = moodRating }, Cmd.none )
 
         UpdateCurrentInput input ->
             ( { model | currentInput = input }, Cmd.none )
@@ -85,7 +87,7 @@ update msg model =
             in
             ( { model
                 | currentMood = newMood
-                , currentMoodRating = Nothing
+                , currentMoodRating = Unset
                 , currentInput = ""
               }
             , Cmd.none
@@ -103,6 +105,8 @@ view model =
         , viewMoodSelector model
         , Html.hr [] []
         , viewMoodDetails model.currentMood
+        , Html.hr [] []
+        , viewMoodDashboard model
         ]
 
 
@@ -138,33 +142,48 @@ viewMoodDetails mood =
         , p [] [ text mood.moodComment ]
         ]
 
+viewMoodDashboard : Model -> Html Msg
+viewMoodDashboard model =
+    div [] (viewMoodIcons model.moodList)
 
-showMood : Maybe MoodRating -> String
-showMood maybeMoodRating =
-    case maybeMoodRating of
-        Just moodRating ->
-            case moodRating of
-                Happy ->
-                    "Happy"
 
-                Neutral ->
-                    "Neutral"
+viewMoodIcons : List Mood -> List (Html Msg)
+viewMoodIcons moodList =
+    let
+        element mood =
+            case mood.moodRating of
+                Happy -> text "O"
+                Neutral -> text "-"
+                Bad -> text "X"
+                Unset -> text " "
+    in
+    List.map (\m -> element m) moodList
 
-                Bad ->
-                    "Bad"
+showMood : MoodRating -> String
+showMood moodRating =
+    case moodRating of
+        Happy ->
+            "Happy"
 
-        Nothing ->
+        Neutral ->
+            "Neutral"
+
+        Bad ->
+            "Bad"
+
+        Unset ->
             "Undecided."
 
 
-hasMood : Maybe MoodRating -> Bool
-hasMood maybeMoodRating =
-    case maybeMoodRating of
-        Just _ ->
+hasMood : MoodRating -> Bool
+hasMood moodRating =
+    case moodRating of
+        Unset ->
+            False
+
+        _ ->
             True
 
-        Nothing ->
-            False
 
 
 
