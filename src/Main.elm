@@ -89,6 +89,7 @@ update msg model =
                 | currentMood = newMood
                 , currentMoodRating = Unset
                 , currentInput = ""
+                , moodList = List.append model.moodList [newMood]  -- No other way than List.append?
               }
             , Cmd.none
             )
@@ -144,7 +145,14 @@ viewMoodDetails mood =
 
 viewMoodDashboard : Model -> Html Msg
 viewMoodDashboard model =
-    div [] (viewMoodIcons model.moodList)
+    div []
+        [ h1 [] [ text "Mood Dashboard: "]
+        , div []
+            [ text "Mood Count: "
+            , text <| String.fromInt <| List.length model.moodList
+            ]
+        , div [] (viewMoodIcons model.moodList)
+        ]
 
 
 viewMoodIcons : List Mood -> List (Html Msg)
