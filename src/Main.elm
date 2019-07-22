@@ -11,7 +11,7 @@ import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 
 ---- TODO ----
 -- add dashboard
---  - text only first
+--  o text only first
 --  - then use svg-rendered icons
 ---- MODEL ----
 
