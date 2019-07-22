@@ -9,7 +9,9 @@ import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 
 
 ---- TODO ----
--- submitButton should save MoodRating and Message and Timestamp to a Mood
+-- add dashboard
+--  - text only first
+--  - then use svg-rendered icons
 ---- MODEL ----
 
 
@@ -18,6 +20,7 @@ type alias Model =
     , currentMoodRating : Maybe MoodRating
     , currentInput : String
     , currentTimeStamp : Time.Posix
+    , moodList : List Mood
     }
 
 
@@ -44,6 +47,7 @@ init =
       , currentMoodRating = Nothing
       , currentInput = ""
       , currentTimeStamp = Time.millisToPosix 0
+      , moodList = []
       }
     , Cmd.none
     )
@@ -96,12 +100,14 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Elm Niconico" ]
-        , viewMoodSelector model model.currentMood
+        , viewMoodSelector model
+        , Html.hr [] []
+        , viewMoodDetails model.currentMood
         ]
 
 
-viewMoodSelector : Model -> Mood -> Html Msg
-viewMoodSelector model mood =
+viewMoodSelector : Model -> Html Msg
+viewMoodSelector model =
     div []
         [ div []
             [ h1 [ onClick (SelectMood Happy) ] [ text ":)" ]
@@ -121,12 +127,15 @@ viewMoodSelector model mood =
                 ]
                 [ text "Submit" ]
             ]
-        , Html.hr [] []
-        , div []
-            [ h1 [] [ text "Current Mood: " ]
-            , p [] [ text (showMood mood.moodRating) ]
-            , p [] [ text mood.moodComment ]
-            ]
+        ]
+
+
+viewMoodDetails : Mood -> Html Msg
+viewMoodDetails mood =
+    div []
+        [ h1 [] [ text "Current Mood: " ]
+        , p [] [ text (showMood mood.moodRating) ]
+        , p [] [ text mood.moodComment ]
         ]
 
 
