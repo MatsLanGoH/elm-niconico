@@ -1,10 +1,11 @@
 module Main exposing (main)
 
 import Browser
-import Debug
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
+import Svg exposing (circle, rect, svg)
+import Svg.Attributes exposing (height, viewBox, width, x, y, fill)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 
 
@@ -12,7 +13,8 @@ import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 ---- TODO ----
 -- add dashboard
 --  o text only first
---  - then use svg-rendered icons
+--  o then use svg-rendered icons
+--  - fix spacings
 ---- MODEL ----
 
 
@@ -89,7 +91,7 @@ update msg model =
                 | currentMood = newMood
                 , currentMoodRating = Unset
                 , currentInput = ""
-                , moodList = List.append model.moodList [newMood]  -- No other way than List.append?
+                , moodList = List.append model.moodList [ newMood ] -- No other way than List.append?
               }
             , Cmd.none
             )
@@ -143,10 +145,11 @@ viewMoodDetails mood =
         , p [] [ text mood.moodComment ]
         ]
 
+
 viewMoodDashboard : Model -> Html Msg
 viewMoodDashboard model =
     div []
-        [ h1 [] [ text "Mood Dashboard: "]
+        [ h1 [] [ text "Mood Dashboard: " ]
         , div []
             [ text "Mood Count: "
             , text <| String.fromInt <| List.length model.moodList
@@ -158,14 +161,37 @@ viewMoodDashboard model =
 viewMoodIcons : List Mood -> List (Html Msg)
 viewMoodIcons moodList =
     let
-        element mood =
+        moodColor mood =
             case mood.moodRating of
-                Happy -> text "O"
-                Neutral -> text "-"
-                Bad -> text "X"
-                Unset -> text " "
+                Happy ->
+                    "rgb(82,255,165)"
+
+                Neutral ->
+                    "rgb(232,225,92)"
+
+                Bad ->
+                    "rgb(235,96,136)"
+
+                Unset ->
+                    "rgb(204,204,204)"
+        block mood =
+            svg
+                [ width "24"
+                , height "24"
+                , viewBox "0 0 24 24"
+                ]
+                [ rect
+                    [ x "2"
+                    , y "2"
+                    , width "18"
+                    , height "18"
+                    , fill (moodColor mood)
+                    ]
+                    []
+                ]
     in
-    List.map (\m -> element m) moodList
+    List.map (\m -> block m) moodList
+
 
 showMood : MoodRating -> String
 showMood moodRating =
@@ -191,7 +217,6 @@ hasMood moodRating =
 
         _ ->
             True
-
 
 
 
