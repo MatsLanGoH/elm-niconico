@@ -4,17 +4,21 @@ import Browser
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
+import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
+import Json.Decode.Pipeline exposing (optional, required)
 import Svg exposing (circle, rect, svg)
-import Svg.Attributes exposing (height, viewBox, width, x, y, fill)
+import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
+import Url.Builder as U exposing (crossOrigin)
 
 
 
 ---- TODO ----
--- add dashboard
---  o text only first
---  o then use svg-rendered icons
---  - fix spacings
+-- [ ] implement mood decoder
+-- [ ] GET moods
+-- [ ] POST a mood
+-- ...
+-- [ ] switch page view
 ---- MODEL ----
 
 
@@ -39,6 +43,44 @@ type MoodRating
     | Neutral
     | Bad
     | Unset
+
+
+
+---- DECODERS ----
+
+
+moodDecoder : Decoder Mood
+moodDecoder =
+    Decode.succeed Mood
+        |> required "mood" moodRatingDecoder
+        |> required "message" string
+        |> required "timestamp" moodTimestampDecoder
+
+
+moodRatingDecoder : Decoder MoodRating
+moodRatingDecoder =
+    Decode.int
+        |> andThen
+            (\n ->
+                case n of
+                    1 ->
+                        succeed Happy
+
+                    2 ->
+                        succeed Neutral
+
+                    3 ->
+                        succeed Bad
+
+                    _ ->
+                        succeed Unset
+            )
+
+
+moodTimestampDecoder : Decoder Time.Posix
+moodTimestampDecoder =
+    Decode.map (\n -> n * 1000 |> round |> Time.millisToPosix)
+        Decode.float
 
 
 init : ( Model, Cmd Msg )
@@ -174,6 +216,7 @@ viewMoodIcons moodList =
 
                 Unset ->
                     "rgb(204,204,204)"
+
         block mood =
             svg
                 [ width "24"
