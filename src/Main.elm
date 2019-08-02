@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
+import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
 import Svg exposing (circle, rect, svg)
@@ -14,8 +15,8 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 ---- TODO ----
--- [ ] implement mood decoder
--- [ ] GET moods
+-- [x] implement mood decoder
+-- [x] GET moods
 -- [ ] POST a mood
 -- ...
 -- [ ] switch page view
@@ -27,7 +28,9 @@ type alias Model =
     , currentMoodRating : MoodRating
     , currentInput : String
     , currentTimeStamp : Time.Posix
-    , moodList : List Mood
+    , moodList : MoodList
+    , moodStatus : RequestMoodStatus
+    , error : String
     }
 
 
@@ -45,8 +48,23 @@ type MoodRating
     | Unset
 
 
+type alias MoodList =
+    List Mood
+
+
+type RequestMoodStatus
+    = AwaitingMoodStatus
+    | FailureMoodStatus
+    | SuccessMoodStatus MoodList
+
+
 
 ---- DECODERS ----
+
+
+moodListDecoder : Decoder MoodList
+moodListDecoder =
+    Decode.list moodDecoder
 
 
 moodDecoder : Decoder Mood
@@ -94,6 +112,8 @@ init =
       , currentInput = ""
       , currentTimeStamp = Time.millisToPosix 0
       , moodList = []
+      , moodStatus = AwaitingMoodStatus
+      , error = ""
       }
     , Cmd.none
     )
@@ -107,6 +127,8 @@ type Msg
     = SelectMood MoodRating
     | UpdateCurrentInput String
     | SaveMood
+    | FetchMoodList
+    | GotMoodList (Result Http.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,6 +159,35 @@ update msg model =
               }
             , Cmd.none
             )
+
+        FetchMoodList ->
+            ( { model | moodStatus = AwaitingMoodStatus }
+            , let
+                resultUrl =
+                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+              in
+              Http.get
+                { url = resultUrl
+                , expect = Http.expectString GotMoodList
+                }
+            )
+
+        GotMoodList result ->
+            case result of
+                Ok fullJson ->
+                    let
+                        moodListResponse =
+                            decodeString moodListDecoder fullJson
+                    in
+                    case moodListResponse of
+                        Ok data ->
+                            ( { model | moodStatus = SuccessMoodStatus data, moodList = data }, Cmd.none )
+
+                        Err error ->
+                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+
+                Err _ ->
+                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
 
 
 
@@ -175,6 +226,11 @@ viewMoodSelector model =
                 , onClick SaveMood
                 ]
                 [ text "Submit" ]
+            ]
+        , div []
+            [ button
+                [ onClick FetchMoodList ]
+                [ text "Fetch Moods" ]
             ]
         ]
 
