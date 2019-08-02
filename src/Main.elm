@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onFocus, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 import Svg exposing (circle, rect, svg)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
@@ -17,8 +18,7 @@ import Url.Builder as U exposing (crossOrigin)
 ---- TODO ----
 -- [x] implement mood decoder
 -- [x] GET moods
--- [ ] POST a mood
--- ...
+-- [x] POST a mood
 -- [ ] switch page view
 ---- MODEL ----
 
@@ -128,6 +128,7 @@ type Msg
     | UpdateCurrentInput String
     | SaveMood
     | FetchMoodList
+    | GotMood (Result Http.Error String)
     | GotMoodList (Result Http.Error String)
 
 
@@ -157,7 +158,37 @@ update msg model =
                 , currentInput = ""
                 , moodList = List.append model.moodList [ newMood ] -- No other way than List.append?
               }
-            , Cmd.none
+            , let
+                moodString =
+                    "mood="
+                        ++ (case newMood.moodRating of
+                                Happy ->
+                                    "1"
+
+                                Neutral ->
+                                    "2"
+
+                                Bad ->
+                                    "3"
+
+                                Unset ->
+                                    ""
+                           )
+
+                messageString =
+                    "message=" ++ newMood.moodComment
+
+                body =
+                    Http.stringBody "application/x-www-form-urlencoded" (moodString ++ "&" ++ messageString)
+
+                targetUrl =
+                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+              in
+              Http.post
+                { body = body
+                , url = targetUrl
+                , expect = Http.expectString GotMood
+                }
             )
 
         FetchMoodList ->
@@ -171,6 +202,23 @@ update msg model =
                 , expect = Http.expectString GotMoodList
                 }
             )
+
+        GotMood result ->
+            case result of
+                Ok fullJson ->
+                    let
+                        moodResponse =
+                            decodeString moodDecoder fullJson
+                    in
+                    case moodResponse of
+                        Ok data ->
+                            ( { model | moodStatus = SuccessMoodStatus [ data ], currentMood = data }, Cmd.none )
+
+                        Err error ->
+                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+
+                Err _ ->
+                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
 
         GotMoodList result ->
             case result of
