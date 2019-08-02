@@ -4,17 +4,22 @@ import Browser
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
+import Http
+import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
+import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 import Svg exposing (circle, rect, svg)
-import Svg.Attributes exposing (height, viewBox, width, x, y, fill)
+import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
+import Url.Builder as U exposing (crossOrigin)
 
 
 
 ---- TODO ----
--- add dashboard
---  o text only first
---  o then use svg-rendered icons
---  - fix spacings
+-- [x] implement mood decoder
+-- [x] GET moods
+-- [x] POST a mood
+-- [ ] switch page view
 ---- MODEL ----
 
 
@@ -23,7 +28,9 @@ type alias Model =
     , currentMoodRating : MoodRating
     , currentInput : String
     , currentTimeStamp : Time.Posix
-    , moodList : List Mood
+    , moodList : MoodList
+    , moodStatus : RequestMoodStatus
+    , error : String
     }
 
 
@@ -41,6 +48,59 @@ type MoodRating
     | Unset
 
 
+type alias MoodList =
+    List Mood
+
+
+type RequestMoodStatus
+    = AwaitingMoodStatus
+    | FailureMoodStatus
+    | SuccessMoodStatus MoodList
+
+
+
+---- DECODERS ----
+
+
+moodListDecoder : Decoder MoodList
+moodListDecoder =
+    Decode.list moodDecoder
+
+
+moodDecoder : Decoder Mood
+moodDecoder =
+    Decode.succeed Mood
+        |> required "mood" moodRatingDecoder
+        |> required "message" string
+        |> required "timestamp" moodTimestampDecoder
+
+
+moodRatingDecoder : Decoder MoodRating
+moodRatingDecoder =
+    Decode.int
+        |> andThen
+            (\n ->
+                case n of
+                    1 ->
+                        succeed Happy
+
+                    2 ->
+                        succeed Neutral
+
+                    3 ->
+                        succeed Bad
+
+                    _ ->
+                        succeed Unset
+            )
+
+
+moodTimestampDecoder : Decoder Time.Posix
+moodTimestampDecoder =
+    Decode.map (\n -> n * 1000 |> round |> Time.millisToPosix)
+        Decode.float
+
+
 init : ( Model, Cmd Msg )
 init =
     let
@@ -52,6 +112,8 @@ init =
       , currentInput = ""
       , currentTimeStamp = Time.millisToPosix 0
       , moodList = []
+      , moodStatus = AwaitingMoodStatus
+      , error = ""
       }
     , Cmd.none
     )
@@ -65,6 +127,9 @@ type Msg
     = SelectMood MoodRating
     | UpdateCurrentInput String
     | SaveMood
+    | FetchMoodList
+    | GotMood (Result Http.Error String)
+    | GotMoodList (Result Http.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,8 +158,84 @@ update msg model =
                 , currentInput = ""
                 , moodList = List.append model.moodList [ newMood ] -- No other way than List.append?
               }
-            , Cmd.none
+            , let
+                moodString =
+                    "mood="
+                        ++ (case newMood.moodRating of
+                                Happy ->
+                                    "1"
+
+                                Neutral ->
+                                    "2"
+
+                                Bad ->
+                                    "3"
+
+                                Unset ->
+                                    ""
+                           )
+
+                messageString =
+                    "message=" ++ newMood.moodComment
+
+                body =
+                    Http.stringBody "application/x-www-form-urlencoded" (moodString ++ "&" ++ messageString)
+
+                targetUrl =
+                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+              in
+              Http.post
+                { body = body
+                , url = targetUrl
+                , expect = Http.expectString GotMood
+                }
             )
+
+        FetchMoodList ->
+            ( { model | moodStatus = AwaitingMoodStatus }
+            , let
+                resultUrl =
+                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+              in
+              Http.get
+                { url = resultUrl
+                , expect = Http.expectString GotMoodList
+                }
+            )
+
+        GotMood result ->
+            case result of
+                Ok fullJson ->
+                    let
+                        moodResponse =
+                            decodeString moodDecoder fullJson
+                    in
+                    case moodResponse of
+                        Ok data ->
+                            ( { model | moodStatus = SuccessMoodStatus [ data ], currentMood = data }, Cmd.none )
+
+                        Err error ->
+                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+
+                Err _ ->
+                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
+
+        GotMoodList result ->
+            case result of
+                Ok fullJson ->
+                    let
+                        moodListResponse =
+                            decodeString moodListDecoder fullJson
+                    in
+                    case moodListResponse of
+                        Ok data ->
+                            ( { model | moodStatus = SuccessMoodStatus data, moodList = data }, Cmd.none )
+
+                        Err error ->
+                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+
+                Err _ ->
+                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
 
 
 
@@ -133,6 +274,11 @@ viewMoodSelector model =
                 , onClick SaveMood
                 ]
                 [ text "Submit" ]
+            ]
+        , div []
+            [ button
+                [ onClick FetchMoodList ]
+                [ text "Fetch Moods" ]
             ]
         ]
 
@@ -174,6 +320,7 @@ viewMoodIcons moodList =
 
                 Unset ->
                     "rgb(204,204,204)"
+
         block mood =
             svg
                 [ width "24"
