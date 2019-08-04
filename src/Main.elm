@@ -16,9 +16,7 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 ---- TODO ----
--- [x] implement mood decoder
--- [x] GET moods
--- [x] POST a mood
+-- [ ] Update newest mood
 -- [ ] switch page view
 ---- MODEL ----
 
