@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Browser
+import Browser exposing (Document)
 import Html exposing (Html, button, div, h1, img, input, p, text)
 import Html.Attributes exposing (disabled, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
@@ -8,6 +8,8 @@ import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Jwt exposing (..)
+import Jwt.Http exposing (get, post)
 import Svg exposing (circle, rect, svg)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
@@ -22,7 +24,10 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 type alias Model =
-    { currentMood : Mood
+    { username : String
+    , password : String
+    , token : Maybe String
+    , currentMood : Mood
     , currentMoodRating : MoodRating
     , currentInput : String
     , currentTimeStamp : Time.Posix
@@ -105,7 +110,10 @@ init =
         noMood =
             { moodRating = Unset, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
     in
-    ( { currentMood = noMood
+    ( { username = ""
+      , password = ""
+      , token = Nothing
+      , currentMood = noMood
       , currentMoodRating = Unset
       , currentInput = ""
       , currentTimeStamp = Time.millisToPosix 0
@@ -182,9 +190,13 @@ update msg model =
                 targetUrl =
                     crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
               in
-              Http.post
-                { body = body
+              Http.request
+                { method = "POST"
                 , url = targetUrl
+                , headers = [ Http.header "Authorization" "Token d5522107de8375b202ac397c6c5217ce07427d488ceedb720da0a28ec04b430d" ]
+                , body = body
+                , timeout = Nothing
+                , tracker = Nothing
                 , expect = Http.expectString GotMood
                 }
             )
@@ -195,8 +207,13 @@ update msg model =
                 resultUrl =
                     crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
               in
-              Http.get
-                { url = resultUrl
+              Http.request
+                { method = "GET"
+                , url = resultUrl
+                , headers = [ Http.header "Authorization" "Token d5522107de8375b202ac397c6c5217ce07427d488ceedb720da0a28ec04b430d" ]
+                , body = Http.emptyBody
+                , timeout = Nothing
+                , tracker = Nothing
                 , expect = Http.expectString GotMoodList
                 }
             )
@@ -240,16 +257,20 @@ update msg model =
 ---- VIEW ----
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-    div []
-        [ h1 [] [ text "Elm Niconico" ]
-        , viewMoodSelector model
-        , Html.hr [] []
-        , viewMoodDetails model.currentMood
-        , Html.hr [] []
-        , viewMoodDashboard model
+    { title = "Elm Niconico app"
+    , body =
+        [ div []
+            [ h1 [] [ text "Elm Niconico" ]
+            , viewMoodSelector model
+            , Html.hr [] []
+            , viewMoodDetails model.currentMood
+            , Html.hr [] []
+            , viewMoodDashboard model
+            ]
         ]
+    }
 
 
 viewMoodSelector : Model -> Html Msg
@@ -385,7 +406,7 @@ toUtcString date =
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.document
         { view = view
         , init = \_ -> init
         , update = update
