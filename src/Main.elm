@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Html exposing (Html, button, div, h1, img, input, p, text)
-import Html.Attributes exposing (disabled, src, value)
-import Html.Events exposing (onClick, onFocus, onInput)
+import Html exposing (Html, button, div, fieldset, form, h1, img, input, p, text)
+import Html.Attributes exposing (disabled, placeholder, src, type_, value)
+import Html.Events exposing (onClick, onFocus, onInput, onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -18,14 +18,15 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 ---- TODO ----
--- [ ] Update newest mood
+-- [ ] Implement login form
+-- [ ] retrieve token (or redirect to login)
+-- [ ] redirect to overview
 -- [ ] switch page view
 ---- MODEL ----
 
 
 type alias Model =
-    { username : String
-    , password : String
+    { form : Form
     , token : Maybe String
     , currentMood : Mood
     , currentMoodRating : MoodRating
@@ -34,6 +35,12 @@ type alias Model =
     , moodList : MoodList
     , moodStatus : RequestMoodStatus
     , error : String
+    }
+
+
+type alias Form =
+    { username : String
+    , password : String
     }
 
 
@@ -55,6 +62,12 @@ type alias MoodList =
     List Mood
 
 
+type alias KnoxToken =
+    { expiry : String
+    , token : String
+    }
+
+
 type RequestMoodStatus
     = AwaitingMoodStatus
     | FailureMoodStatus
@@ -63,6 +76,13 @@ type RequestMoodStatus
 
 
 ---- DECODERS ----
+
+
+knoxTokenDecoder : Decoder KnoxToken
+knoxTokenDecoder =
+    Decode.succeed KnoxToken
+        |> required "expiry" string
+        |> required "token" string
 
 
 moodListDecoder : Decoder MoodList
@@ -110,8 +130,10 @@ init =
         noMood =
             { moodRating = Unset, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
     in
-    ( { username = ""
-      , password = ""
+    ( { form =
+            { username = ""
+            , password = ""
+            }
       , token = Nothing
       , currentMood = noMood
       , currentMoodRating = Unset
@@ -130,7 +152,10 @@ init =
 
 
 type Msg
-    = SelectMood MoodRating
+    = SubmittedForm
+    | EnterUsername String
+    | EnterPassword String
+    | SelectMood MoodRating
     | UpdateCurrentInput String
     | SaveMood
     | FetchMoodList
@@ -141,6 +166,32 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        SubmittedForm ->
+            ( model
+            , let
+                toJson =
+                    login model.form
+
+                resultUrl =
+                    crossOrigin "http://127.0.0.1:8000" [ "api/auth/login/" ] []
+              in
+              Http.request
+                { method = "POST"
+                , url = resultUrl
+                , headers = []
+                , body = Http.jsonBody toJson
+                , timeout = Nothing
+                , tracker = Nothing
+                , expect = Http.expectString GotMoodList
+                }
+            )
+
+        EnterUsername username ->
+            updateForm (\form -> { form | username = username }) model
+
+        EnterPassword password ->
+            updateForm (\form -> { form | password = password }) model
+
         SelectMood moodRating ->
             ( { model | currentMoodRating = moodRating }, Cmd.none )
 
@@ -253,6 +304,13 @@ update msg model =
                     ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
 
 
+{-| Helper function for `update`. Updates the form and returns Cmd.none.
+-}
+updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
+updateForm transform model =
+    ( { model | form = transform model.form }, Cmd.none )
+
+
 
 ---- VIEW ----
 
@@ -263,6 +321,8 @@ view model =
     , body =
         [ div []
             [ h1 [] [ text "Elm Niconico" ]
+            , viewForm model.form
+            , Html.hr [] []
             , viewMoodSelector model
             , Html.hr [] []
             , viewMoodDetails model.currentMood
@@ -271,6 +331,30 @@ view model =
             ]
         ]
     }
+
+
+viewForm : Form -> Html Msg
+viewForm form =
+    Html.form [ onSubmit SubmittedForm ]
+        [ input
+            [ onInput EnterUsername
+            , placeholder "Username"
+            ]
+            []
+        , input
+            [ onInput EnterPassword
+            , type_ "password"
+            , placeholder "Password"
+            ]
+            []
+        , button [] [ text "Sign in" ]
+        ]
+
+
+viewLoginForm : Model -> Html Msg
+viewLoginForm model =
+    div []
+        [ input [] [] ]
 
 
 viewMoodSelector : Model -> Html Msg
@@ -383,6 +467,24 @@ hasMood moodRating =
 
         _ ->
             True
+
+
+
+---- HTTP ----
+
+
+{-| TODO:
+
+  - [ ] TrimmedForm
+  - [ ] input validation
+
+-}
+login : Form -> Encode.Value
+login form =
+    Encode.object
+        [ ( "username", Encode.string form.username )
+        , ( "password", Encode.string form.password )
+        ]
 
 
 
