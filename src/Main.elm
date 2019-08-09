@@ -10,7 +10,7 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Jwt exposing (..)
 import Jwt.Http exposing (get, post)
-import Svg exposing (circle, rect, svg)
+import Svg exposing (circle, rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
@@ -18,8 +18,11 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 ---- TODO ----
--- [ ] Implement login form
--- [ ] retrieve token (or redirect to login)
+-- [x] Implement login form
+-- [x] retrieve token
+-- [ ] get user info from api/auth/user
+-- [ ] Implement register form
+-- [ ] (or redirect to login)
 -- [ ] redirect to overview
 -- [ ] switch page view
 ---- MODEL ----
@@ -27,7 +30,8 @@ import Url.Builder as U exposing (crossOrigin)
 
 type alias Model =
     { form : Form
-    , token : Maybe String
+    , token : Maybe KnoxToken
+    , loginStatus : LoginStatus
     , currentMood : Mood
     , currentMoodRating : MoodRating
     , currentInput : String
@@ -66,6 +70,11 @@ type alias KnoxToken =
     { expiry : String
     , token : String
     }
+
+
+type LoginStatus
+    = LoggedIn
+    | LoggedOut
 
 
 type RequestMoodStatus
@@ -135,6 +144,7 @@ init =
             , password = ""
             }
       , token = Nothing
+      , loginStatus = LoggedOut
       , currentMood = noMood
       , currentMoodRating = Unset
       , currentInput = ""
@@ -159,6 +169,7 @@ type Msg
     | UpdateCurrentInput String
     | SaveMood
     | FetchMoodList
+    | GotAuthToken (Result Http.Error String)
     | GotMood (Result Http.Error String)
     | GotMoodList (Result Http.Error String)
 
@@ -182,7 +193,7 @@ update msg model =
                 , body = Http.jsonBody toJson
                 , timeout = Nothing
                 , tracker = Nothing
-                , expect = Http.expectString GotMoodList
+                , expect = Http.expectString GotAuthToken
                 }
             )
 
@@ -240,11 +251,19 @@ update msg model =
 
                 targetUrl =
                     crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+
+                token =
+                    case model.token of
+                        Just t ->
+                            t.token
+
+                        Nothing ->
+                            ""
               in
               Http.request
                 { method = "POST"
                 , url = targetUrl
-                , headers = [ Http.header "Authorization" "Token d5522107de8375b202ac397c6c5217ce07427d488ceedb720da0a28ec04b430d" ]
+                , headers = [ Http.header "Authorization" ("Token " ++ token) ]
                 , body = body
                 , timeout = Nothing
                 , tracker = Nothing
@@ -257,17 +276,59 @@ update msg model =
             , let
                 resultUrl =
                     crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+
+                token =
+                    case model.token of
+                        Just t ->
+                            t.token
+
+                        Nothing ->
+                            ""
               in
               Http.request
                 { method = "GET"
                 , url = resultUrl
-                , headers = [ Http.header "Authorization" "Token d5522107de8375b202ac397c6c5217ce07427d488ceedb720da0a28ec04b430d" ]
+                , headers = [ Http.header "Authorization" ("Token " ++ token) ]
                 , body = Http.emptyBody
                 , timeout = Nothing
                 , tracker = Nothing
                 , expect = Http.expectString GotMoodList
                 }
             )
+
+        GotAuthToken result ->
+            case result of
+                Ok fullJson ->
+                    let
+                        authTokenResponse =
+                            decodeString knoxTokenDecoder fullJson
+                    in
+                    case authTokenResponse of
+                        -- Todo: expiry
+                        Ok data ->
+                            ( { model
+                                | loginStatus = LoggedIn
+                                , token = Just data
+                              }
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( { model
+                                | loginStatus = LoggedOut
+                                , token = Nothing
+                                , error = Decode.errorToString error
+                              }
+                            , Cmd.none
+                            )
+
+                Err _ ->
+                    ( { model
+                        | loginStatus = LoggedOut
+                        , token = Nothing
+                      }
+                    , Cmd.none
+                    )
 
         GotMood result ->
             case result of
@@ -278,13 +339,27 @@ update msg model =
                     in
                     case moodResponse of
                         Ok data ->
-                            ( { model | moodStatus = SuccessMoodStatus [ data ], currentMood = data }, Cmd.none )
+                            ( { model
+                                | moodStatus = SuccessMoodStatus [ data ]
+                                , currentMood = data
+                              }
+                            , Cmd.none
+                            )
 
                         Err error ->
-                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+                            ( { model
+                                | moodStatus = FailureMoodStatus
+                                , error = Decode.errorToString error
+                              }
+                            , Cmd.none
+                            )
 
                 Err _ ->
-                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
+                    ( { model
+                        | moodStatus = FailureMoodStatus
+                      }
+                    , Cmd.none
+                    )
 
         GotMoodList result ->
             case result of
@@ -295,20 +370,38 @@ update msg model =
                     in
                     case moodListResponse of
                         Ok data ->
-                            ( { model | moodStatus = SuccessMoodStatus data, moodList = data }, Cmd.none )
+                            ( { model
+                                | moodStatus = SuccessMoodStatus data
+                                , moodList = data
+                              }
+                            , Cmd.none
+                            )
 
                         Err error ->
-                            ( { model | moodStatus = FailureMoodStatus, error = Decode.errorToString error }, Cmd.none )
+                            ( { model
+                                | moodStatus = FailureMoodStatus
+                                , error = Decode.errorToString error
+                              }
+                            , Cmd.none
+                            )
 
                 Err _ ->
-                    ( { model | moodStatus = FailureMoodStatus }, Cmd.none )
+                    ( { model
+                        | moodStatus = FailureMoodStatus
+                      }
+                    , Cmd.none
+                    )
 
 
 {-| Helper function for `update`. Updates the form and returns Cmd.none.
 -}
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
 updateForm transform model =
-    ( { model | form = transform model.form }, Cmd.none )
+    ( { model
+        | form = transform model.form
+      }
+    , Cmd.none
+    )
 
 
 
@@ -424,6 +517,9 @@ viewMoodIcons moodList =
                 Unset ->
                     "rgb(204,204,204)"
 
+        moodText mood =
+            mood.moodComment
+
         block mood =
             svg
                 [ width "24"
@@ -438,6 +534,7 @@ viewMoodIcons moodList =
                     , fill (moodColor mood)
                     ]
                     []
+                , title [] [ Svg.text (moodText mood) ]
                 ]
     in
     List.map (\m -> block m) moodList
