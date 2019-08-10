@@ -24,3 +24,21 @@ img {
   margin: 20px 0;
   max-width: 200px;
 }
+
+/* Custom CSS for Elm App */
+
+.far {
+  color: rgb(204,204,204);
+}
+
+.fa-smile-beam:hover {
+  color: rgb(82,255,165);
+}
+                    
+.fa-meh:hover {
+  color: rgb(232,225,92);
+}
+
+.fa-sad-tear:hover {
+  color: rgb(235,96,136);
+}
