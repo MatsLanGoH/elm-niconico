@@ -453,19 +453,20 @@ viewMoodSelector model =
     div []
         [ div []
             [ h1 [ onClick (SelectMood Happy) ] [ 
-                i [ class "far fa-smile-beam fa-2x" ] [] 
+                i [ class ("far fa-smile-beam fa-2x " ++ isSelected model Happy) ] [] 
                 ]
             , h1 [ onClick (SelectMood Neutral) ] [
-                i [ class "far fa-meh fa-2x" ] []
+                i [ class ("far fa-meh fa-2x " ++ isSelected model Neutral) ] []
             ]
             , h1 [ onClick (SelectMood Bad) ] [ 
-                i [ class "far fa-sad-tear fa-2x"] []
+                i [ class ("far fa-sad-tear fa-2x " ++ isSelected model Bad) ] []
             ]
             ]
         , div []
             [ div []
                 [ p [] [ text "How do you feel?" ]
-                , input [ value model.currentInput, onInput UpdateCurrentInput ] []
+                , input [ value model.currentInput
+                        , onInput UpdateCurrentInput ] []
                 ]
             ]
         , div []
@@ -482,6 +483,12 @@ viewMoodSelector model =
             ]
         ]
 
+isSelected : Model -> MoodRating -> String
+isSelected model moodRating =
+    if moodRating == model.currentMoodRating then
+        "selected"
+    else
+        ""
 
 viewMoodDetails : Mood -> Html Msg
 viewMoodDetails mood =
