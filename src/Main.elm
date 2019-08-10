@@ -453,13 +453,13 @@ viewMoodSelector model =
     div []
         [ div []
             [ h1 [ onClick (SelectMood Happy) ] [ 
-                i [ class "far fa-smile-beam" ] [] 
+                i [ class "far fa-smile-beam fa-2x" ] [] 
                 ]
             , h1 [ onClick (SelectMood Neutral) ] [
-                i [ class "far fa-meh" ] []
+                i [ class "far fa-meh fa-2x" ] []
             ]
             , h1 [ onClick (SelectMood Bad) ] [ 
-                i [ class "far fa-sad-tear"] []
+                i [ class "far fa-sad-tear fa-2x"] []
             ]
             ]
         , div []
