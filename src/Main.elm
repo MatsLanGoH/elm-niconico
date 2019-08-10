@@ -1,18 +1,16 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Html exposing (Html, button, div, fieldset, form, h1, img, input, p, text)
-import Html.Attributes exposing (disabled, placeholder, src, type_, value)
-import Html.Events exposing (onClick, onFocus, onInput, onSubmit)
+import Html exposing (Html, button, div, h1,i, input, p, text )
+import Html.Attributes exposing (class, disabled, placeholder, type_, value)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
-import Json.Decode as Decode exposing (Decoder, andThen, decodeString, fail, field, float, int, string, succeed)
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
+import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Jwt exposing (..)
-import Jwt.Http exposing (get, post)
-import Svg exposing (circle, rect, svg, title)
+import Svg exposing (rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
-import Time exposing (Month, Weekday, toDay, toMonth, toWeekday, toYear, utc)
+import Time exposing (toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
@@ -454,9 +452,15 @@ viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
     div []
         [ div []
-            [ h1 [ onClick (SelectMood Happy) ] [ text ":)" ]
-            , h1 [ onClick (SelectMood Neutral) ] [ text ":|" ]
-            , h1 [ onClick (SelectMood Bad) ] [ text ":(" ]
+            [ h1 [ onClick (SelectMood Happy) ] [ 
+                i [ class "far fa-smile-beam" ] [] 
+                ]
+            , h1 [ onClick (SelectMood Neutral) ] [
+                i [ class "far fa-meh" ] []
+            ]
+            , h1 [ onClick (SelectMood Bad) ] [ 
+                i [ class "far fa-sad-tear"] []
+            ]
             ]
         , div []
             [ div []
