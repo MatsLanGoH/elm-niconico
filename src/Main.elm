@@ -1,7 +1,14 @@
 module Main exposing (main)
 
+{-| ---- TODO: Auth ----
+[ ] get user info from api/auth/user
+[ ] Implement register form
+[ ] (or redirect to login)
+[ ] redirect to overview
+-}
+
 import Browser exposing (Document)
-import Html exposing (Html, button, div, h1,i, input, p, text )
+import Html exposing (Html, button, div, h1, i, input, p, text)
 import Html.Attributes exposing (class, disabled, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
@@ -14,15 +21,15 @@ import Time exposing (toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
+{-| --- TODO: Pages
 
----- TODO ----
--- [x] Implement login form
--- [x] retrieve token
--- [ ] get user info from api/auth/user
--- [ ] Implement register form
--- [ ] (or redirect to login)
--- [ ] redirect to overview
--- [ ] switch page view
+  - [ ] implement multiple pages
+  - [ ] select login view when no token
+
+-}
+
+
+
 ---- MODEL ----
 
 
@@ -378,6 +385,7 @@ update msg model =
                         Err error ->
                             ( { model
                                 | moodStatus = FailureMoodStatus
+                                , moodList = []
                                 , error = Decode.errorToString error
                               }
                             , Cmd.none
@@ -386,6 +394,7 @@ update msg model =
                 Err _ ->
                     ( { model
                         | moodStatus = FailureMoodStatus
+                        , moodList = []
                       }
                     , Cmd.none
                     )
@@ -452,21 +461,24 @@ viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
     div []
         [ div []
-            [ h1 [ onClick (SelectMood Happy) ] [ 
-                i [ class ("far fa-smile-beam fa-2x " ++ isSelected model Happy) ] [] 
+            [ h1 [ onClick (SelectMood Happy) ]
+                [ i [ class ("far fa-smile-beam fa-2x " ++ isSelected model Happy) ] []
                 ]
-            , h1 [ onClick (SelectMood Neutral) ] [
-                i [ class ("far fa-meh fa-2x " ++ isSelected model Neutral) ] []
-            ]
-            , h1 [ onClick (SelectMood Bad) ] [ 
-                i [ class ("far fa-sad-tear fa-2x " ++ isSelected model Bad) ] []
-            ]
+            , h1 [ onClick (SelectMood Neutral) ]
+                [ i [ class ("far fa-meh fa-2x " ++ isSelected model Neutral) ] []
+                ]
+            , h1 [ onClick (SelectMood Bad) ]
+                [ i [ class ("far fa-sad-tear fa-2x " ++ isSelected model Bad) ] []
+                ]
             ]
         , div []
             [ div []
                 [ p [] [ text "How do you feel?" ]
-                , input [ value model.currentInput
-                        , onInput UpdateCurrentInput ] []
+                , input
+                    [ value model.currentInput
+                    , onInput UpdateCurrentInput
+                    ]
+                    []
                 ]
             ]
         , div []
@@ -483,12 +495,15 @@ viewMoodSelector model =
             ]
         ]
 
+
 isSelected : Model -> MoodRating -> String
 isSelected model moodRating =
     if moodRating == model.currentMoodRating then
         "selected"
+
     else
         ""
+
 
 viewMoodDetails : Mood -> Html Msg
 viewMoodDetails mood =
