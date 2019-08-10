@@ -25,20 +25,51 @@ img {
   max-width: 200px;
 }
 
+
+
 /* Custom CSS for Elm App */
-
-.far {
-  color: rgb(204,204,204);
+/* Nav elements */
+nav li:hover {
+  cursor: pointer;
 }
 
-.fa-smile-beam.selected, .fa-smile-beam:hover {
-  color: rgb(82,255,165);
+nav li.active {
+  color: aqua;
 }
 
-.fa-meh.selected, .fa-meh:hover {
-  color: rgb(232,225,92);
+/* Mood Emoticons */
+.mood_icon {
+  border-radius: 90%;
+  color: rgb(204, 204, 204);
 }
 
-.fa-sad-tear.selected, .fa-sad-tear:hover {
-  color: rgb(235,96,136);
+.mood_icon:hover {
+  cursor: pointer;
+}
+
+.mood_icon.fa-smile-beam:hover {
+  color: rgb(82, 255, 165);
+}
+
+.mood_icon.fa-smile-beam.selected {
+  color: rgb(82, 255, 165);
+  background-color: rgba(82, 255, 166, 0.1);
+}
+
+.mood_icon.fa-meh:hover {
+  color: rgb(232, 225, 92);
+}
+
+.mood_icon.fa-meh.selected {
+  color: rgb(232, 225, 92);
+  background-color: rgba(232, 225, 92, 0.1);
+}
+
+.mood_icon.fa-sad-tear:hover {
+  color: rgb(235, 96, 136);
+}
+
+.mood_icon.fa-sad-tear.selected {
+  color: rgb(235, 96, 136);
+  background-color: rgba(235, 96, 136, 0.1);
 }

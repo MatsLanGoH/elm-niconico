@@ -8,9 +8,10 @@ module Main exposing (main)
 -}
 
 import Browser exposing (Document)
-import Html exposing (Html, button, div, h1, i, input, p, text)
-import Html.Attributes exposing (class, disabled, placeholder, type_, value)
+import Html exposing (Html, a, button, div, footer, h1, i, input, li, nav, p, text, ul)
+import Html.Attributes exposing (class, classList, disabled, href, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
+import Html.Lazy exposing (lazy)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (required)
@@ -23,7 +24,7 @@ import Url.Builder as U exposing (crossOrigin)
 
 {-| --- TODO: Pages
 
-  - [ ] implement multiple pages
+  - [x] implement multiple pages
   - [ ] select login view when no token
 
 -}
@@ -34,7 +35,8 @@ import Url.Builder as U exposing (crossOrigin)
 
 
 type alias Model =
-    { form : Form
+    { page : Page
+    , form : Form
     , token : Maybe KnoxToken
     , loginStatus : LoginStatus
     , currentMood : Mood
@@ -45,6 +47,11 @@ type alias Model =
     , moodStatus : RequestMoodStatus
     , error : String
     }
+
+
+type Page
+    = Login
+    | Moods
 
 
 type alias Form =
@@ -144,7 +151,8 @@ init =
         noMood =
             { moodRating = Unset, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
     in
-    ( { form =
+    ( { page = Login
+      , form =
             { username = ""
             , password = ""
             }
@@ -167,7 +175,8 @@ init =
 
 
 type Msg
-    = SubmittedForm
+    = ChangedPage Page
+    | SubmittedForm
     | EnterUsername String
     | EnterPassword String
     | SelectMood MoodRating
@@ -182,6 +191,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ChangedPage page ->
+            ( { model | page = page }, Cmd.none )
+
         SubmittedForm ->
             ( model
             , let
@@ -417,20 +429,50 @@ updateForm transform model =
 
 view : Model -> Document Msg
 view model =
+    let
+        content =
+            div []
+                [ viewForm model.form
+                , Html.hr [] []
+                , lazy viewMoodSelector model
+                , Html.hr [] []
+                , viewMoodDetails model.currentMood
+                , Html.hr [] []
+                , viewMoodDashboard model
+                ]
+    in
     { title = "Elm Niconico app"
     , body =
-        [ div []
-            [ h1 [] [ text "Elm Niconico" ]
-            , viewForm model.form
-            , Html.hr [] []
-            , viewMoodSelector model
-            , Html.hr [] []
-            , viewMoodDetails model.currentMood
-            , Html.hr [] []
-            , viewMoodDashboard model
-            ]
+        [ lazy viewHeader model.page
+        , content
+        , viewFooter
         ]
     }
+
+
+viewHeader : Page -> Html Msg
+viewHeader page =
+    let
+        logo =
+            h1 [] [ text "Elm Niconico" ]
+
+        links =
+            ul []
+                [ navLink Login "Login"
+                , navLink Moods "Moods"
+                ]
+
+        navLink : Page -> String -> Html Msg
+        navLink targetPage caption =
+            li [ classList [ ( "active", page == targetPage ) ] ]
+                [ p [ onClick (ChangedPage targetPage) ] [ text caption ] ]
+    in
+    nav [] [ logo, links ]
+
+
+viewFooter : Html msg
+viewFooter =
+    footer [] [ text "One is never alone with a rubber duck. - Douglas Adams" ]
 
 
 viewForm : Form -> Html Msg
@@ -462,13 +504,28 @@ viewMoodSelector model =
     div []
         [ div []
             [ h1 [ onClick (SelectMood Happy) ]
-                [ i [ class ("far fa-smile-beam fa-2x " ++ isSelected model Happy) ] []
+                [ i
+                    [ class "far fa-smile-beam fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
+                    ]
+                    []
                 ]
             , h1 [ onClick (SelectMood Neutral) ]
-                [ i [ class ("far fa-meh fa-2x " ++ isSelected model Neutral) ] []
+                [ i
+                    [ class "far fa-meh fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Neutral ) ]
+                    ]
+                    []
                 ]
             , h1 [ onClick (SelectMood Bad) ]
-                [ i [ class ("far fa-sad-tear fa-2x " ++ isSelected model Bad) ] []
+                [ i
+                    [ class "far fa-sad-tear fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
+                    ]
+                    []
                 ]
             ]
         , div []
@@ -494,15 +551,6 @@ viewMoodSelector model =
                 [ text "Fetch Moods" ]
             ]
         ]
-
-
-isSelected : Model -> MoodRating -> String
-isSelected model moodRating =
-    if moodRating == model.currentMoodRating then
-        "selected"
-
-    else
-        ""
 
 
 viewMoodDetails : Mood -> Html Msg
