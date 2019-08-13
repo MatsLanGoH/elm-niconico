@@ -22,15 +22,6 @@ import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
-{-| --- TODO: Pages
-
-  - [x] implement multiple pages
-  - [x] select login view when no token
-
--}
-
-
-
 ---- MODEL ----
 
 
