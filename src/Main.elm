@@ -25,7 +25,7 @@ import Url.Builder as U exposing (crossOrigin)
 {-| --- TODO: Pages
 
   - [x] implement multiple pages
-  - [ ] select login view when no token
+  - [x] select login view when no token
 
 -}
 
@@ -434,28 +434,34 @@ view : Model -> Document Msg
 view model =
     { title = "Elm Niconico app"
     , body =
-        [ lazy viewHeader model.page
+        [ lazy viewHeader model
         , viewContent model
         , viewFooter
         ]
     }
 
 
-viewHeader : Page -> Html Msg
-viewHeader page =
+viewHeader : Model -> Html Msg
+viewHeader model =
     let
         logo =
             h1 [] [ text "Elm Niconico" ]
 
         links =
-            ul []
-                [ navLink Login "Login"
-                , navLink Moods "Moods"
-                ]
+            case model.loginStatus of
+                LoggedIn ->
+                    ul []
+                        [ navLink Login "Login"
+                        , navLink Moods "Moods"
+                        ]
+
+                LoggedOut ->
+                    ul []
+                        [ navLink Login "Login" ]
 
         navLink : Page -> String -> Html Msg
         navLink targetPage caption =
-            li [ classList [ ( "active", page == targetPage ) ] ]
+            li [ classList [ ( "active", model.page == targetPage ) ] ]
                 [ p [ onClick (ChangedPage targetPage) ] [ text caption ] ]
     in
     nav [] [ logo, links ]
