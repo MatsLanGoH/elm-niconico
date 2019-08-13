@@ -1,33 +1,33 @@
 module Main exposing (main)
 
+{-| ---- TODO: Auth ----
+[ ] get user info from api/auth/user
+[ ] Implement register form
+[ ] (or redirect to login)
+[ ] redirect to overview
+-}
+
 import Browser exposing (Document)
-import Html exposing (Html, button, div, h1,i, input, p, text )
-import Html.Attributes exposing (class, disabled, placeholder, type_, value)
+import Html exposing (Html, a, button, div, footer, h1, i, input, li, nav, p, text, ul)
+import Html.Attributes exposing (class, classList, disabled, href, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
+import Html.Lazy exposing (lazy)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import Svg exposing (rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
-import Time exposing (toYear, utc)
+import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
-
----- TODO ----
--- [x] Implement login form
--- [x] retrieve token
--- [ ] get user info from api/auth/user
--- [ ] Implement register form
--- [ ] (or redirect to login)
--- [ ] redirect to overview
--- [ ] switch page view
 ---- MODEL ----
 
 
 type alias Model =
-    { form : Form
+    { page : Page
+    , form : Form
     , token : Maybe KnoxToken
     , loginStatus : LoginStatus
     , currentMood : Mood
@@ -38,6 +38,11 @@ type alias Model =
     , moodStatus : RequestMoodStatus
     , error : String
     }
+
+
+type Page
+    = Login
+    | Moods
 
 
 type alias Form =
@@ -137,7 +142,8 @@ init =
         noMood =
             { moodRating = Unset, moodComment = "", moodTimeStamp = Time.millisToPosix 0 }
     in
-    ( { form =
+    ( { page = Login
+      , form =
             { username = ""
             , password = ""
             }
@@ -160,7 +166,8 @@ init =
 
 
 type Msg
-    = SubmittedForm
+    = ChangedPage Page
+    | SubmittedForm
     | EnterUsername String
     | EnterPassword String
     | SelectMood MoodRating
@@ -175,6 +182,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ChangedPage page ->
+            ( { model | page = page }, Cmd.none )
+
         SubmittedForm ->
             ( model
             , let
@@ -304,12 +314,12 @@ update msg model =
                     case authTokenResponse of
                         -- Todo: expiry
                         Ok data ->
-                            ( { model
+                            { model
                                 | loginStatus = LoggedIn
                                 , token = Just data
-                              }
-                            , Cmd.none
-                            )
+                                , page = Moods
+                            }
+                                |> update FetchMoodList
 
                         Err error ->
                             ( { model
@@ -369,7 +379,8 @@ update msg model =
                     case moodListResponse of
                         Ok data ->
                             ( { model
-                                | moodStatus = SuccessMoodStatus data
+                                | currentMoodRating = Unset
+                                , moodStatus = SuccessMoodStatus data
                                 , moodList = data
                               }
                             , Cmd.none
@@ -377,7 +388,9 @@ update msg model =
 
                         Err error ->
                             ( { model
-                                | moodStatus = FailureMoodStatus
+                                | currentMoodRating = Unset
+                                , moodStatus = FailureMoodStatus
+                                , moodList = []
                                 , error = Decode.errorToString error
                               }
                             , Cmd.none
@@ -385,7 +398,9 @@ update msg model =
 
                 Err _ ->
                     ( { model
-                        | moodStatus = FailureMoodStatus
+                        | currentMoodRating = Unset
+                        , moodStatus = FailureMoodStatus
+                        , moodList = []
                       }
                     , Cmd.none
                     )
@@ -410,18 +425,61 @@ view : Model -> Document Msg
 view model =
     { title = "Elm Niconico app"
     , body =
-        [ div []
-            [ h1 [] [ text "Elm Niconico" ]
-            , viewForm model.form
-            , Html.hr [] []
-            , viewMoodSelector model
-            , Html.hr [] []
-            , viewMoodDetails model.currentMood
-            , Html.hr [] []
-            , viewMoodDashboard model
-            ]
+        [ lazy viewHeader model
+        , viewContent model
+        , viewFooter
         ]
     }
+
+
+viewHeader : Model -> Html Msg
+viewHeader model =
+    let
+        logo =
+            h1 [] [ text "Elm Niconico" ]
+
+        links =
+            case model.loginStatus of
+                LoggedIn ->
+                    ul []
+                        [ navLink Login "Login"
+                        , navLink Moods "Moods"
+                        ]
+
+                LoggedOut ->
+                    ul []
+                        [ navLink Login "Login" ]
+
+        navLink : Page -> String -> Html Msg
+        navLink targetPage caption =
+            li [ classList [ ( "active", model.page == targetPage ) ] ]
+                [ p [ onClick (ChangedPage targetPage) ] [ text caption ] ]
+    in
+    nav [] [ logo, links ]
+
+
+viewContent : Model -> Html Msg
+viewContent model =
+    case model.page of
+        Login ->
+            div []
+                [ viewForm model.form
+                , Html.hr [] []
+                ]
+
+        Moods ->
+            div []
+                [ lazy viewMoodSelector model
+                , Html.hr [] []
+                , viewMoodDetails model.currentMood
+                , Html.hr [] []
+                , viewMoodDashboard model
+                ]
+
+
+viewFooter : Html msg
+viewFooter =
+    footer [] [ text "One is never alone with a rubber duck. - Douglas Adams" ]
 
 
 viewForm : Form -> Html Msg
@@ -452,21 +510,39 @@ viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
     div []
         [ div []
-            [ h1 [ onClick (SelectMood Happy) ] [ 
-                i [ class ("far fa-smile-beam fa-2x " ++ isSelected model Happy) ] [] 
+            [ h1 [ onClick (SelectMood Happy) ]
+                [ i
+                    [ class "far fa-smile-beam fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
+                    ]
+                    []
                 ]
-            , h1 [ onClick (SelectMood Neutral) ] [
-                i [ class ("far fa-meh fa-2x " ++ isSelected model Neutral) ] []
-            ]
-            , h1 [ onClick (SelectMood Bad) ] [ 
-                i [ class ("far fa-sad-tear fa-2x " ++ isSelected model Bad) ] []
-            ]
+            , h1 [ onClick (SelectMood Neutral) ]
+                [ i
+                    [ class "far fa-meh fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Neutral ) ]
+                    ]
+                    []
+                ]
+            , h1 [ onClick (SelectMood Bad) ]
+                [ i
+                    [ class "far fa-sad-tear fa-2x"
+                    , class "mood_icon"
+                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
+                    ]
+                    []
+                ]
             ]
         , div []
             [ div []
                 [ p [] [ text "How do you feel?" ]
-                , input [ value model.currentInput
-                        , onInput UpdateCurrentInput ] []
+                , input
+                    [ value model.currentInput
+                    , onInput UpdateCurrentInput
+                    ]
+                    []
                 ]
             ]
         , div []
@@ -483,12 +559,6 @@ viewMoodSelector model =
             ]
         ]
 
-isSelected : Model -> MoodRating -> String
-isSelected model moodRating =
-    if moodRating == model.currentMoodRating then
-        "selected"
-    else
-        ""
 
 viewMoodDetails : Mood -> Html Msg
 viewMoodDetails mood =
@@ -545,7 +615,7 @@ viewMoodIcons moodList =
                     , fill (moodColor mood)
                     ]
                     []
-                , title [] [ Svg.text (moodText mood) ]
+                , title [] [ Svg.text (moodText mood), Svg.text (toUtcString mood.moodTimeStamp) ]
                 ]
     in
     List.map (\m -> block m) moodList
@@ -599,9 +669,16 @@ login form =
 ---- UTILS ----
 
 
+{-| TODO:
+We still need to make this timezone-aware!
+-}
 toUtcString : Time.Posix -> String
 toUtcString date =
     String.fromInt (Time.toYear utc date)
+        ++ "-"
+        ++ Debug.toString (Time.toMonth utc date)
+        ++ "-"
+        ++ Debug.toString (Time.toDay utc date)
         ++ "/"
         ++ String.fromInt (Time.toHour utc date)
         ++ ":"
