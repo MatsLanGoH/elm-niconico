@@ -18,7 +18,7 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import Svg exposing (rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
-import Time exposing (toYear, utc)
+import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
@@ -323,12 +323,12 @@ update msg model =
                     case authTokenResponse of
                         -- Todo: expiry
                         Ok data ->
-                            ( { model
+                            { model
                                 | loginStatus = LoggedIn
                                 , token = Just data
-                              }
-                            , Cmd.none
-                            )
+                                , page = Moods
+                            }
+                                |> update FetchMoodList
 
                         Err error ->
                             ( { model
@@ -388,7 +388,8 @@ update msg model =
                     case moodListResponse of
                         Ok data ->
                             ( { model
-                                | moodStatus = SuccessMoodStatus data
+                                | currentMoodRating = Unset
+                                , moodStatus = SuccessMoodStatus data
                                 , moodList = data
                               }
                             , Cmd.none
@@ -396,7 +397,8 @@ update msg model =
 
                         Err error ->
                             ( { model
-                                | moodStatus = FailureMoodStatus
+                                | currentMoodRating = Unset
+                                , moodStatus = FailureMoodStatus
                                 , moodList = []
                                 , error = Decode.errorToString error
                               }
@@ -405,7 +407,8 @@ update msg model =
 
                 Err _ ->
                     ( { model
-                        | moodStatus = FailureMoodStatus
+                        | currentMoodRating = Unset
+                        , moodStatus = FailureMoodStatus
                         , moodList = []
                       }
                     , Cmd.none
@@ -429,22 +432,10 @@ updateForm transform model =
 
 view : Model -> Document Msg
 view model =
-    let
-        content =
-            div []
-                [ viewForm model.form
-                , Html.hr [] []
-                , lazy viewMoodSelector model
-                , Html.hr [] []
-                , viewMoodDetails model.currentMood
-                , Html.hr [] []
-                , viewMoodDashboard model
-                ]
-    in
     { title = "Elm Niconico app"
     , body =
         [ lazy viewHeader model.page
-        , content
+        , viewContent model
         , viewFooter
         ]
     }
@@ -468,6 +459,25 @@ viewHeader page =
                 [ p [ onClick (ChangedPage targetPage) ] [ text caption ] ]
     in
     nav [] [ logo, links ]
+
+
+viewContent : Model -> Html Msg
+viewContent model =
+    case model.page of
+        Login ->
+            div []
+                [ viewForm model.form
+                , Html.hr [] []
+                ]
+
+        Moods ->
+            div []
+                [ lazy viewMoodSelector model
+                , Html.hr [] []
+                , viewMoodDetails model.currentMood
+                , Html.hr [] []
+                , viewMoodDashboard model
+                ]
 
 
 viewFooter : Html msg
@@ -608,7 +618,7 @@ viewMoodIcons moodList =
                     , fill (moodColor mood)
                     ]
                     []
-                , title [] [ Svg.text (moodText mood) ]
+                , title [] [ Svg.text (moodText mood), Svg.text (toUtcString mood.moodTimeStamp) ]
                 ]
     in
     List.map (\m -> block m) moodList
@@ -662,9 +672,16 @@ login form =
 ---- UTILS ----
 
 
+{-| TODO:
+We still need to make this timezone-aware!
+-}
 toUtcString : Time.Posix -> String
 toUtcString date =
     String.fromInt (Time.toYear utc date)
+        ++ "-"
+        ++ Debug.toString (Time.toMonth utc date)
+        ++ "-"
+        ++ Debug.toString (Time.toDay utc date)
         ++ "/"
         ++ String.fromInt (Time.toHour utc date)
         ++ ":"
