@@ -22,6 +22,7 @@ import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
 
 
+
 ---- MODEL ----
 
 
@@ -84,6 +85,16 @@ type RequestMoodStatus
     = AwaitingMoodStatus
     | FailureMoodStatus
     | SuccessMoodStatus MoodList
+
+
+
+---- URL ----
+-- TODO: Fix this when we deploy a server
+
+
+baseUrl : String
+baseUrl =
+    "http://10.0.1.35:8000"
 
 
 
@@ -192,7 +203,7 @@ update msg model =
                     login model.form
 
                 resultUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/auth/login/" ] []
+                    crossOrigin baseUrl [ "api", "auth", "login/" ] []
               in
               Http.request
                 { method = "POST"
@@ -258,7 +269,7 @@ update msg model =
                     Http.stringBody "application/x-www-form-urlencoded" (moodString ++ "&" ++ messageString)
 
                 targetUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+                    crossOrigin baseUrl [ "api", "moods/" ] [ U.string "format" "json" ]
 
                 token =
                     case model.token of
@@ -283,7 +294,7 @@ update msg model =
             ( { model | moodStatus = AwaitingMoodStatus }
             , let
                 resultUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+                    crossOrigin baseUrl [ "api", "moods/" ] [ U.string "format" "json" ]
 
                 token =
                     case model.token of
@@ -347,12 +358,11 @@ update msg model =
                     in
                     case moodResponse of
                         Ok data ->
-                            ( { model
+                            { model
                                 | moodStatus = SuccessMoodStatus [ data ]
                                 , currentMood = data
-                              }
-                            , Cmd.none
-                            )
+                            }
+                                |> update FetchMoodList
 
                         Err error ->
                             ( { model
