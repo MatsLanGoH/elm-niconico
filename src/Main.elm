@@ -4,7 +4,7 @@ module Main exposing (main)
 [ ] get user info from api/auth/user
 [ ] Implement register form
 [ ] (or redirect to login)
-[ ] redirect to overview
+[x] redirect to overview
 -}
 
 import Browser exposing (Document)
@@ -608,7 +608,7 @@ viewMoodDashboard model =
             [ text "Mood Count: "
             , text <| String.fromInt <| List.length model.moodList
             ]
-        , div [] (viewMoodIcons model.moodList)
+        , div [ class "mood_list" ] (viewMoodIcons model.moodList)
         ]
 
 
@@ -637,10 +637,11 @@ viewMoodIcons moodList =
                 [ width "24"
                 , height "24"
                 , viewBox "0 0 24 24"
+                , Svg.Attributes.class "mood_block" -- Html.Attributes.class breaks things here!
                 ]
                 [ rect
-                    [ x "2"
-                    , y "2"
+                    [ x "3"
+                    , y "3"
                     , width "18"
                     , height "18"
                     , fill (moodColor mood)

@@ -80,3 +80,17 @@ nav li.active {
   color: rgb(235, 96, 136);
   background-color: rgba(235, 96, 136, 0.1);
 }
+
+/* Mood blocks */
+.mood_list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: left;
+}
+
+.mood_block:hover {
+  filter: brightness(110%);
+  transform: scale(1.1);
+}
