@@ -43,6 +43,7 @@ type alias Model =
 
 type Page
     = Login
+    | Logout
     | Moods
 
 
@@ -194,7 +195,18 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangedPage page ->
-            ( { model | page = page }, Cmd.none )
+            case page of
+                Logout ->
+                    ( { model
+                        | token = Nothing
+                        , loginStatus = LoggedOut
+                        , page = page
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( { model | page = page }, Cmd.none )
 
         SubmittedForm ->
             ( model
@@ -341,10 +353,11 @@ update msg model =
                             , Cmd.none
                             )
 
-                Err _ ->
+                Err error ->
                     ( { model
                         | loginStatus = LoggedOut
                         , token = Nothing
+                        , error = Debug.toString error
                       }
                     , Cmd.none
                     )
@@ -452,7 +465,7 @@ viewHeader model =
             case model.loginStatus of
                 LoggedIn ->
                     ul []
-                        [ navLink Login "Login"
+                        [ navLink Logout "Logout"
                         , navLink Moods "Moods"
                         ]
 
@@ -474,6 +487,14 @@ viewContent model =
         Login ->
             div []
                 [ viewForm model.form
+                , Html.hr [] []
+                , text model.error
+                ]
+
+        Logout ->
+            div
+                []
+                [ p [] [ text "Logged out!" ]
                 , Html.hr [] []
                 ]
 
