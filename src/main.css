@@ -91,8 +91,9 @@ nav li.active {
 }
 
 svg.mood_block {
-  max-width: 24px;
-  max-height: 24px;
+  /* Required for now to display mood blocks in Chrome */
+  width: 24px;
+  height: 24px;
 }
 
 svg.mood_block:hover {
