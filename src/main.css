@@ -90,7 +90,12 @@ nav li.active {
   justify-content: left;
 }
 
-.mood_block:hover {
+svg.mood_block {
+  max-width: 24px;
+  max-height: 24px;
+}
+
+svg.mood_block:hover {
   filter: brightness(110%);
   transform: scale(1.1);
 }

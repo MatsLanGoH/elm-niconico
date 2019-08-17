@@ -5,6 +5,8 @@ module Main exposing (main)
 [ ] Implement register form
 [ ] (or redirect to login)
 [x] redirect to overview
+[ ] store token
+[ ] handle errors
 -}
 
 import Browser exposing (Document)
@@ -16,7 +18,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Svg exposing (rect, svg, title)
+import Svg exposing (g, rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
@@ -197,13 +199,12 @@ update msg model =
         ChangedPage page ->
             case page of
                 Logout ->
-                    ( { model
-                        | token = Nothing
-                        , loginStatus = LoggedOut
-                        , page = page
-                      }
-                    , Cmd.none
-                    )
+                    {-
+                       TODO: Implement a better logout experience. For now this will do.
+                       - [ ] Logout on the server as well
+                       - [ ] Display a logout message
+                    -}
+                    init
 
                 _ ->
                     ( { model | page = page }, Cmd.none )
@@ -486,7 +487,7 @@ viewContent model =
     case model.page of
         Login ->
             div []
-                [ viewForm model.form
+                [ viewLoginForm model.form
                 , Html.hr [] []
                 , text model.error
                 ]
@@ -513,8 +514,8 @@ viewFooter =
     footer [] [ text "One is never alone with a rubber duck. - Douglas Adams" ]
 
 
-viewForm : Form -> Html Msg
-viewForm form =
+viewLoginForm : Form -> Html Msg
+viewLoginForm form =
     Html.form [ onSubmit SubmittedForm ]
         [ input
             [ onInput EnterUsername
@@ -529,12 +530,6 @@ viewForm form =
             []
         , button [] [ text "Sign in" ]
         ]
-
-
-viewLoginForm : Model -> Html Msg
-viewLoginForm model =
-    div []
-        [ input [] [] ]
 
 
 viewMoodSelector : Model -> Html Msg
@@ -634,9 +629,7 @@ viewMoodIcons moodList =
 
         block mood =
             svg
-                [ width "24"
-                , height "24"
-                , viewBox "0 0 24 24"
+                [ viewBox "0 0 24 24"
                 , Svg.Attributes.class "mood_block" -- Html.Attributes.class breaks things here!
                 ]
                 [ rect
@@ -644,6 +637,7 @@ viewMoodIcons moodList =
                     , y "3"
                     , width "18"
                     , height "18"
+                    , Svg.Attributes.shapeRendering "crispEdges"
                     , fill (moodColor mood)
                     ]
                     []
