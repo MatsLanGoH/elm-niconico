@@ -2,7 +2,7 @@ module Main exposing (main)
 
 {-| ---- TODO: Auth ----
 [ ] get user info from api/auth/user
-[ ] Implement register form
+[x] Implement register form
 [ ] (or redirect to login)
 [x] redirect to overview
 [ ] store token
@@ -16,7 +16,7 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Html.Lazy exposing (lazy)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Svg exposing (g, rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
@@ -46,6 +46,7 @@ type alias Model =
 type Page
     = Login
     | Logout
+    | Register
     | Moods
 
 
@@ -107,7 +108,7 @@ baseUrl =
 knoxTokenDecoder : Decoder KnoxToken
 knoxTokenDecoder =
     Decode.succeed KnoxToken
-        |> required "expiry" string
+        |> optional "expiry" string ""
         |> required "token" string
 
 
@@ -181,7 +182,8 @@ init =
 
 type Msg
     = ChangedPage Page
-    | SubmittedForm
+    | SubmittedLoginForm
+    | SubmittedRegisterForm
     | EnterUsername String
     | EnterPassword String
     | SelectMood MoodRating
@@ -209,7 +211,7 @@ update msg model =
                 _ ->
                     ( { model | page = page }, Cmd.none )
 
-        SubmittedForm ->
+        SubmittedLoginForm ->
             ( model
             , let
                 toJson =
@@ -217,6 +219,26 @@ update msg model =
 
                 resultUrl =
                     crossOrigin baseUrl [ "api", "auth", "login/" ] []
+              in
+              Http.request
+                { method = "POST"
+                , url = resultUrl
+                , headers = []
+                , body = Http.jsonBody toJson
+                , timeout = Nothing
+                , tracker = Nothing
+                , expect = Http.expectString GotAuthToken
+                }
+            )
+
+        SubmittedRegisterForm ->
+            ( model
+            , let
+                toJson =
+                    login model.form
+
+                resultUrl =
+                    crossOrigin baseUrl [ "api", "auth", "register/" ] []
               in
               Http.request
                 { method = "POST"
@@ -472,7 +494,9 @@ viewHeader model =
 
                 LoggedOut ->
                     ul []
-                        [ navLink Login "Login" ]
+                        [ navLink Login "Login"
+                        , navLink Register "Register"
+                        ]
 
         navLink : Page -> String -> Html Msg
         navLink targetPage caption =
@@ -485,6 +509,13 @@ viewHeader model =
 viewContent : Model -> Html Msg
 viewContent model =
     case model.page of
+        Register ->
+            div []
+                [ viewRegisterForm model.form
+                , Html.hr [] []
+                , text model.error
+                ]
+
         Login ->
             div []
                 [ viewLoginForm model.form
@@ -516,7 +547,7 @@ viewFooter =
 
 viewLoginForm : Form -> Html Msg
 viewLoginForm form =
-    Html.form [ onSubmit SubmittedForm ]
+    Html.form [ onSubmit SubmittedLoginForm ]
         [ input
             [ onInput EnterUsername
             , placeholder "Username"
@@ -526,6 +557,30 @@ viewLoginForm form =
             [ onInput EnterPassword
             , type_ "password"
             , placeholder "Password"
+            ]
+            []
+        , button [] [ text "Sign in" ]
+        ]
+
+
+viewRegisterForm : Form -> Html Msg
+viewRegisterForm form =
+    Html.form [ onSubmit SubmittedRegisterForm ]
+        [ input
+            [ onInput EnterUsername
+            , placeholder "Username"
+            ]
+            []
+        , input
+            [ onInput EnterPassword
+            , type_ "password"
+            , placeholder "Password"
+            ]
+            []
+        , input
+            [ onInput EnterPassword -- TODO: Password validation for register
+            , type_ "password"
+            , placeholder "Confirm Password"
             ]
             []
         , button [] [ text "Sign in" ]
