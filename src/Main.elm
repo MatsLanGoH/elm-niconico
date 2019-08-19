@@ -176,6 +176,11 @@ init =
     )
 
 
+completedLogout : Result Http.Error () -> Msg
+completedLogout _ =
+    ResetState
+
+
 
 ---- UPDATE ----
 
@@ -184,6 +189,7 @@ type Msg
     = ChangedPage Page
     | SubmittedLoginForm
     | SubmittedRegisterForm
+    | ResetState
     | EnterUsername String
     | EnterPassword String
     | SelectMood MoodRating
@@ -201,12 +207,29 @@ update msg model =
         ChangedPage page ->
             case page of
                 Logout ->
-                    {-
-                       TODO: Implement a better logout experience. For now this will do.
-                       - [ ] Logout on the server as well
-                       - [ ] Display a logout message
-                    -}
-                    init
+                    ( model
+                    , let
+                        token =
+                            case model.token of
+                                Just t ->
+                                    t.token
+
+                                Nothing ->
+                                    ""
+
+                        resultUrl =
+                            crossOrigin baseUrl [ "api", "auth", "logout/" ] []
+                      in
+                      Http.request
+                        { method = "POST"
+                        , url = resultUrl
+                        , expect = Http.expectWhatever completedLogout
+                        , headers = [ Http.header "Authorization" ("Token " ++ token) ]
+                        , body = Http.emptyBody
+                        , timeout = Nothing
+                        , tracker = Nothing
+                        }
+                    )
 
                 _ ->
                     ( { model | page = page }, Cmd.none )
@@ -250,6 +273,9 @@ update msg model =
                 , expect = Http.expectString GotAuthToken
                 }
             )
+
+        ResetState ->
+            init
 
         EnterUsername username ->
             updateForm (\form -> { form | username = username }) model
