@@ -2,9 +2,11 @@ module Main exposing (main)
 
 {-| ---- TODO: Auth ----
 [ ] get user info from api/auth/user
-[ ] Implement register form
+[x] Implement register form
 [ ] (or redirect to login)
-[ ] redirect to overview
+[x] redirect to overview
+[ ] store token
+[ ] handle errors
 -}
 
 import Browser exposing (Document)
@@ -14,12 +16,13 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Html.Lazy exposing (lazy)
 import Http
 import Json.Decode as Decode exposing (Decoder, andThen, decodeString, float, int, string, succeed)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import Svg exposing (rect, svg, title)
+import Svg exposing (g, rect, svg, title)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
 import Time exposing (toMonth, toYear, utc)
 import Url.Builder as U exposing (crossOrigin)
+
 
 
 ---- MODEL ----
@@ -42,6 +45,8 @@ type alias Model =
 
 type Page
     = Login
+    | Logout
+    | Register
     | Moods
 
 
@@ -87,13 +92,23 @@ type RequestMoodStatus
 
 
 
+---- URL ----
+-- TODO: Fix this when we deploy a server
+
+
+baseUrl : String
+baseUrl =
+    "http://10.0.1.35:8000"
+
+
+
 ---- DECODERS ----
 
 
 knoxTokenDecoder : Decoder KnoxToken
 knoxTokenDecoder =
     Decode.succeed KnoxToken
-        |> required "expiry" string
+        |> optional "expiry" string ""
         |> required "token" string
 
 
@@ -161,13 +176,20 @@ init =
     )
 
 
+completedLogout : Result Http.Error () -> Msg
+completedLogout _ =
+    ResetState
+
+
 
 ---- UPDATE ----
 
 
 type Msg
     = ChangedPage Page
-    | SubmittedForm
+    | SubmittedLoginForm
+    | SubmittedRegisterForm
+    | ResetState
     | EnterUsername String
     | EnterPassword String
     | SelectMood MoodRating
@@ -183,16 +205,43 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangedPage page ->
-            ( { model | page = page }, Cmd.none )
+            case page of
+                Logout ->
+                    ( model
+                    , let
+                        token =
+                            case model.token of
+                                Just t ->
+                                    t.token
 
-        SubmittedForm ->
+                                Nothing ->
+                                    ""
+
+                        resultUrl =
+                            crossOrigin baseUrl [ "api", "auth", "logout/" ] []
+                      in
+                      Http.request
+                        { method = "POST"
+                        , url = resultUrl
+                        , expect = Http.expectWhatever completedLogout
+                        , headers = [ Http.header "Authorization" ("Token " ++ token) ]
+                        , body = Http.emptyBody
+                        , timeout = Nothing
+                        , tracker = Nothing
+                        }
+                    )
+
+                _ ->
+                    ( { model | page = page }, Cmd.none )
+
+        SubmittedLoginForm ->
             ( model
             , let
                 toJson =
                     login model.form
 
                 resultUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/auth/login/" ] []
+                    crossOrigin baseUrl [ "api", "auth", "login/" ] []
               in
               Http.request
                 { method = "POST"
@@ -204,6 +253,29 @@ update msg model =
                 , expect = Http.expectString GotAuthToken
                 }
             )
+
+        SubmittedRegisterForm ->
+            ( model
+            , let
+                toJson =
+                    login model.form
+
+                resultUrl =
+                    crossOrigin baseUrl [ "api", "auth", "register/" ] []
+              in
+              Http.request
+                { method = "POST"
+                , url = resultUrl
+                , headers = []
+                , body = Http.jsonBody toJson
+                , timeout = Nothing
+                , tracker = Nothing
+                , expect = Http.expectString GotAuthToken
+                }
+            )
+
+        ResetState ->
+            init
 
         EnterUsername username ->
             updateForm (\form -> { form | username = username }) model
@@ -258,7 +330,7 @@ update msg model =
                     Http.stringBody "application/x-www-form-urlencoded" (moodString ++ "&" ++ messageString)
 
                 targetUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+                    crossOrigin baseUrl [ "api", "moods/" ] [ U.string "format" "json" ]
 
                 token =
                     case model.token of
@@ -283,7 +355,7 @@ update msg model =
             ( { model | moodStatus = AwaitingMoodStatus }
             , let
                 resultUrl =
-                    crossOrigin "http://127.0.0.1:8000" [ "api/moods/" ] [ U.string "format" "json" ]
+                    crossOrigin baseUrl [ "api", "moods/" ] [ U.string "format" "json" ]
 
                 token =
                     case model.token of
@@ -330,10 +402,11 @@ update msg model =
                             , Cmd.none
                             )
 
-                Err _ ->
+                Err error ->
                     ( { model
                         | loginStatus = LoggedOut
                         , token = Nothing
+                        , error = Debug.toString error
                       }
                     , Cmd.none
                     )
@@ -347,12 +420,11 @@ update msg model =
                     in
                     case moodResponse of
                         Ok data ->
-                            ( { model
+                            { model
                                 | moodStatus = SuccessMoodStatus [ data ]
                                 , currentMood = data
-                              }
-                            , Cmd.none
-                            )
+                            }
+                                |> update FetchMoodList
 
                         Err error ->
                             ( { model
@@ -442,13 +514,15 @@ viewHeader model =
             case model.loginStatus of
                 LoggedIn ->
                     ul []
-                        [ navLink Login "Login"
+                        [ navLink Logout "Logout"
                         , navLink Moods "Moods"
                         ]
 
                 LoggedOut ->
                     ul []
-                        [ navLink Login "Login" ]
+                        [ navLink Login "Login"
+                        , navLink Register "Register"
+                        ]
 
         navLink : Page -> String -> Html Msg
         navLink targetPage caption =
@@ -461,9 +535,24 @@ viewHeader model =
 viewContent : Model -> Html Msg
 viewContent model =
     case model.page of
+        Register ->
+            div []
+                [ viewRegisterForm model.form
+                , Html.hr [] []
+                , text model.error
+                ]
+
         Login ->
             div []
-                [ viewForm model.form
+                [ viewLoginForm model.form
+                , Html.hr [] []
+                , text model.error
+                ]
+
+        Logout ->
+            div
+                []
+                [ p [] [ text "Logged out!" ]
                 , Html.hr [] []
                 ]
 
@@ -482,9 +571,9 @@ viewFooter =
     footer [] [ text "One is never alone with a rubber duck. - Douglas Adams" ]
 
 
-viewForm : Form -> Html Msg
-viewForm form =
-    Html.form [ onSubmit SubmittedForm ]
+viewLoginForm : Form -> Html Msg
+viewLoginForm form =
+    Html.form [ onSubmit SubmittedLoginForm ]
         [ input
             [ onInput EnterUsername
             , placeholder "Username"
@@ -500,10 +589,28 @@ viewForm form =
         ]
 
 
-viewLoginForm : Model -> Html Msg
-viewLoginForm model =
-    div []
-        [ input [] [] ]
+viewRegisterForm : Form -> Html Msg
+viewRegisterForm form =
+    Html.form [ onSubmit SubmittedRegisterForm ]
+        [ input
+            [ onInput EnterUsername
+            , placeholder "Username"
+            ]
+            []
+        , input
+            [ onInput EnterPassword
+            , type_ "password"
+            , placeholder "Password"
+            ]
+            []
+        , input
+            [ onInput EnterPassword -- TODO: Password validation for register
+            , type_ "password"
+            , placeholder "Confirm Password"
+            ]
+            []
+        , button [] [ text "Sign in" ]
+        ]
 
 
 viewMoodSelector : Model -> Html Msg
@@ -577,7 +684,7 @@ viewMoodDashboard model =
             [ text "Mood Count: "
             , text <| String.fromInt <| List.length model.moodList
             ]
-        , div [] (viewMoodIcons model.moodList)
+        , div [ class "mood_list" ] (viewMoodIcons model.moodList)
         ]
 
 
@@ -603,15 +710,15 @@ viewMoodIcons moodList =
 
         block mood =
             svg
-                [ width "24"
-                , height "24"
-                , viewBox "0 0 24 24"
+                [ viewBox "0 0 24 24"
+                , Svg.Attributes.class "mood_block" -- Html.Attributes.class breaks things here!
                 ]
                 [ rect
-                    [ x "2"
-                    , y "2"
+                    [ x "3"
+                    , y "3"
                     , width "18"
                     , height "18"
+                    , Svg.Attributes.shapeRendering "crispEdges"
                     , fill (moodColor mood)
                     ]
                     []
