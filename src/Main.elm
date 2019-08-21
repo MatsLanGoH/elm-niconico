@@ -616,12 +616,12 @@ viewRegisterForm form =
 viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
     div []
-        [ div []
-            [ h1 [ onClick (SelectMood Happy) ]
+        [ div [ class "mood_input" ]
+            [ h1 [ onClick (SelectMood Bad) ]
                 [ i
-                    [ class "far fa-smile-beam fa-2x"
+                    [ class "far fa-sad-tear fa-2x"
                     , class "mood_icon"
-                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
+                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
                     ]
                     []
                 ]
@@ -633,36 +633,31 @@ viewMoodSelector model =
                     ]
                     []
                 ]
-            , h1 [ onClick (SelectMood Bad) ]
+            , h1 [ onClick (SelectMood Happy) ]
                 [ i
-                    [ class "far fa-sad-tear fa-2x"
+                    [ class "far fa-smile-beam fa-2x"
                     , class "mood_icon"
-                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
+                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
                     ]
                     []
                 ]
             ]
         , div []
             [ div []
-                [ p [] [ text "How do you feel?" ]
-                , input
+                [ input
                     [ value model.currentInput
                     , onInput UpdateCurrentInput
+                    , placeholder "How do you feel?"
                     ]
                     []
                 ]
             ]
         , div []
             [ button
-                [ disabled (not <| hasMood model.currentMoodRating)
+                [ disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
                 , onClick SaveMood
                 ]
                 [ text "Submit" ]
-            ]
-        , div []
-            [ button
-                [ onClick FetchMoodList ]
-                [ text "Fetch Moods" ]
             ]
         ]
 

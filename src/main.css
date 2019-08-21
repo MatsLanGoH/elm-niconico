@@ -20,20 +20,25 @@ h1 {
   font-size: 30px;
 }
 
-img {
-  margin: 20px 0;
-  max-width: 200px;
-}
-
 ul {
   list-style-type: none;
-  margin: 0;
-  padding: 0;
+}
+
+li {
+  display: inline-flex;
+  justify-content: right;
+  padding: 0 5px;
 }
 
 
 /* Custom CSS for Elm App */
 /* Nav elements */
+
+nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
 
 nav li:hover {
   cursor: pointer;
@@ -44,8 +49,16 @@ nav li.active {
   color: aqua;
 }
 
+/* Mood input */
+.mood_input {
+  display: flex;
+  /* flex-direction: row; */
+  justify-content: center;
+}
+
 /* Mood Emoticons */
 .mood_icon {
+  margin: 0 20px;
   border-radius: 90%;
   color: rgb(204, 204, 204);
 }
@@ -83,11 +96,12 @@ nav li.active {
 
 /* Mood blocks */
 .mood_list {
+  margin: auto;
+  max-width: 168px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-content: flex-start;
-  justify-content: left;
 }
 
 svg.mood_block {
