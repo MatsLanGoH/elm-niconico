@@ -576,6 +576,7 @@ viewLoginForm form =
     Html.form [ onSubmit SubmittedLoginForm ]
         [ input
             [ onInput EnterUsername
+            , type_ "text"
             , placeholder "Username"
             ]
             []
@@ -594,6 +595,7 @@ viewRegisterForm form =
     Html.form [ onSubmit SubmittedRegisterForm ]
         [ input
             [ onInput EnterUsername
+            , type_ "text"
             , placeholder "Username"
             ]
             []
