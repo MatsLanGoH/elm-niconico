@@ -97,7 +97,7 @@ nav li.active {
 /* Mood blocks */
 .mood_list {
   margin: auto;
-  max-width: 168px;
+  max-width: 252px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -106,8 +106,8 @@ nav li.active {
 
 svg.mood_block {
   /* Required for now to display mood blocks in Chrome */
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
 }
 
 svg.mood_block:hover {

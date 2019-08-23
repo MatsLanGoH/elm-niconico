@@ -578,12 +578,14 @@ viewLoginForm form =
             [ onInput EnterUsername
             , type_ "text"
             , placeholder "Username"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword
             , type_ "password"
             , placeholder "Password"
+            , class "input-std"
             ]
             []
         , button [] [ text "Sign in" ]
@@ -597,18 +599,21 @@ viewRegisterForm form =
             [ onInput EnterUsername
             , type_ "text"
             , placeholder "Username"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword
             , type_ "password"
             , placeholder "Password"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword -- TODO: Password validation for register
             , type_ "password"
             , placeholder "Confirm Password"
+            , class "input-std"
             ]
             []
         , button [] [ text "Sign in" ]
@@ -617,7 +622,7 @@ viewRegisterForm form =
 
 viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
-    div []
+    div [ class "" ]
         [ div [ class "mood_input" ]
             [ h1 [ onClick (SelectMood Bad) ]
                 [ i
@@ -650,16 +655,17 @@ viewMoodSelector model =
                     [ value model.currentInput
                     , onInput UpdateCurrentInput
                     , placeholder "How do you feel?"
+                    , class "input-std"
                     ]
                     []
                 ]
-            ]
-        , div []
-            [ button
-                [ disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
-                , onClick SaveMood
+            , div []
+                [ button
+                    [ disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
+                    , onClick SaveMood
+                    ]
+                    [ text "Submit" ]
                 ]
-                [ text "Submit" ]
             ]
         ]
 
@@ -707,14 +713,14 @@ viewMoodIcons moodList =
 
         block mood =
             svg
-                [ viewBox "0 0 24 24"
+                [ viewBox "0 0 36 36"
                 , Svg.Attributes.class "mood_block" -- Html.Attributes.class breaks things here!
                 ]
                 [ rect
-                    [ x "3"
-                    , y "3"
-                    , width "18"
-                    , height "18"
+                    [ x "4"
+                    , y "4"
+                    , width "28"
+                    , height "28"
                     , Svg.Attributes.shapeRendering "crispEdges"
                     , fill (moodColor mood)
                     ]
