@@ -631,6 +631,8 @@ video {
   }
 }
 
+/* Style Form input */
+
 .input-std {
   background-color: #fff;
   border-width: 1px;
@@ -658,6 +660,32 @@ video {
 .input-std:hover {
   outline: 0;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+/* Style buttons */
+
+.form-btn {
+  background-color: transparent;
+  color: #2b6cb0;
+  font-weight: 600;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-width: 1px;
+  border-color: #4299e1;
+  border-radius: 0.25rem;
+}
+
+.form-btn:hover:enabled {
+  background-color: #4299e1;
+  color: #fff;
+  border-color: transparent;
+}
+
+.form-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .sr-only {

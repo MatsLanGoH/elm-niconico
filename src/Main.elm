@@ -98,7 +98,9 @@ type RequestMoodStatus
 
 baseUrl : String
 baseUrl =
-    "http://10.0.1.35:8000"
+    -- "http://10.0.1.35:8000"
+    -- "http://localhost:8000"
+    "http://10.0.19.58:8000"
 
 
 
@@ -588,7 +590,7 @@ viewLoginForm form =
             , class "input-std"
             ]
             []
-        , button [] [ text "Sign in" ]
+        , button [ class "form-btn" ] [ text "Sign in" ]
         ]
 
 
@@ -616,7 +618,7 @@ viewRegisterForm form =
             , class "input-std"
             ]
             []
-        , button [] [ text "Sign in" ]
+        , button [ class "form-btn" ] [ text "Sign in" ]
         ]
 
 
@@ -661,7 +663,8 @@ viewMoodSelector model =
                 ]
             , div []
                 [ button
-                    [ disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
+                    [ class "form-btn"
+                    , disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
                     , onClick SaveMood
                     ]
                     [ text "Submit" ]
