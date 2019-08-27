@@ -98,9 +98,7 @@ type RequestMoodStatus
 
 baseUrl : String
 baseUrl =
-    -- "http://10.0.1.35:8000"
-    -- "http://localhost:8000"
-    "http://10.0.19.58:8000"
+    "http://10.0.1.35:8000"
 
 
 
@@ -306,7 +304,6 @@ update msg model =
                 | currentMood = newMood
                 , currentMoodRating = Unset
                 , currentInput = ""
-                , moodList = List.append model.moodList [ newMood ] -- No other way than List.append?
               }
             , let
                 moodString =
