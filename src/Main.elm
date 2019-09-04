@@ -304,7 +304,6 @@ update msg model =
                 | currentMood = newMood
                 , currentMoodRating = Unset
                 , currentInput = ""
-                , moodList = List.append model.moodList [ newMood ] -- No other way than List.append?
               }
             , let
                 moodString =
@@ -576,16 +575,19 @@ viewLoginForm form =
     Html.form [ onSubmit SubmittedLoginForm ]
         [ input
             [ onInput EnterUsername
+            , type_ "text"
             , placeholder "Username"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword
             , type_ "password"
             , placeholder "Password"
+            , class "input-std"
             ]
             []
-        , button [] [ text "Sign in" ]
+        , button [ class "form-btn" ] [ text "Sign in" ]
         ]
 
 
@@ -594,34 +596,38 @@ viewRegisterForm form =
     Html.form [ onSubmit SubmittedRegisterForm ]
         [ input
             [ onInput EnterUsername
+            , type_ "text"
             , placeholder "Username"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword
             , type_ "password"
             , placeholder "Password"
+            , class "input-std"
             ]
             []
         , input
             [ onInput EnterPassword -- TODO: Password validation for register
             , type_ "password"
             , placeholder "Confirm Password"
+            , class "input-std"
             ]
             []
-        , button [] [ text "Sign in" ]
+        , button [ class "form-btn" ] [ text "Sign in" ]
         ]
 
 
 viewMoodSelector : Model -> Html Msg
 viewMoodSelector model =
-    div []
-        [ div []
-            [ h1 [ onClick (SelectMood Happy) ]
+    div [ class "" ]
+        [ div [ class "mood_input" ]
+            [ h1 [ onClick (SelectMood Bad) ]
                 [ i
-                    [ class "far fa-smile-beam fa-2x"
+                    [ class "far fa-sad-tear fa-2x"
                     , class "mood_icon"
-                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
+                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
                     ]
                     []
                 ]
@@ -633,36 +639,33 @@ viewMoodSelector model =
                     ]
                     []
                 ]
-            , h1 [ onClick (SelectMood Bad) ]
+            , h1 [ onClick (SelectMood Happy) ]
                 [ i
-                    [ class "far fa-sad-tear fa-2x"
+                    [ class "far fa-smile-beam fa-2x"
                     , class "mood_icon"
-                    , classList [ ( "selected", model.currentMoodRating == Bad ) ]
+                    , classList [ ( "selected", model.currentMoodRating == Happy ) ]
                     ]
                     []
                 ]
             ]
         , div []
             [ div []
-                [ p [] [ text "How do you feel?" ]
-                , input
+                [ input
                     [ value model.currentInput
                     , onInput UpdateCurrentInput
+                    , placeholder "How do you feel?"
+                    , class "input-std"
                     ]
                     []
                 ]
-            ]
-        , div []
-            [ button
-                [ disabled (not <| hasMood model.currentMoodRating)
-                , onClick SaveMood
+            , div []
+                [ button
+                    [ class "form-btn"
+                    , disabled (not <| hasMood model.currentMoodRating && String.length model.currentInput > 0)
+                    , onClick SaveMood
+                    ]
+                    [ text "Submit" ]
                 ]
-                [ text "Submit" ]
-            ]
-        , div []
-            [ button
-                [ onClick FetchMoodList ]
-                [ text "Fetch Moods" ]
             ]
         ]
 
@@ -710,14 +713,14 @@ viewMoodIcons moodList =
 
         block mood =
             svg
-                [ viewBox "0 0 24 24"
+                [ viewBox "0 0 36 36"
                 , Svg.Attributes.class "mood_block" -- Html.Attributes.class breaks things here!
                 ]
                 [ rect
-                    [ x "3"
-                    , y "3"
-                    , width "18"
-                    , height "18"
+                    [ x "4"
+                    , y "4"
+                    , width "28"
+                    , height "28"
                     , Svg.Attributes.shapeRendering "crispEdges"
                     , fill (moodColor mood)
                     ]

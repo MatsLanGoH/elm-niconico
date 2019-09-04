@@ -1,0 +1,150 @@
+@tailwind base;
+
+@tailwind components;
+
+/* Style Form input */
+
+.input-std {
+    @apply bg-white border border-gray-300 rounded-lg my-3 mx-auto py-2 px-4 block appearance-none leading-normal;
+}
+
+.input-std:focus {
+    @apply outline-none;
+}
+
+.input-std:hover {
+    @apply outline-none shadow-outline;
+}
+
+/* Style buttons */
+
+.form-btn {
+    @apply bg-transparent text-blue-700 font-semibold py-2 px-4 border border-blue-500 rounded;
+}
+
+.form-btn:hover:enabled {
+    @apply bg-blue-500 text-white border-transparent;
+}
+
+.form-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+@tailwind utilities;
+
+/*
+  elm-hot creates an additional div wrapper around the app to make HMR possible.
+  This could break styling in development mode if you are using Elm UI.
+
+  More context in the issue:
+    https://github.com/halfzebra/create-elm-app/issues/320
+*/
+[data-elm-hot="true"] {
+    height: inherit;
+}
+
+body {
+    font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    text-align: center;
+    color: #293c4b;
+}
+
+h1 {
+    font-size: 30px;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    display: inline-flex;
+    justify-content: right;
+    padding: 0 5px;
+}
+
+
+/* Custom CSS for Elm App */
+/* Nav elements */
+
+nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+nav li:hover {
+    cursor: pointer;
+    background-color: #f1f1f1;
+}
+
+nav li.active {
+    color: aqua;
+}
+
+/* Mood input */
+.mood_input {
+    display: flex;
+    /* flex-direction: row; */
+    justify-content: center;
+}
+
+/* Mood Emoticons */
+.mood_icon {
+    margin: 0 20px;
+    border-radius: 90%;
+    color: rgb(204, 204, 204);
+}
+
+.mood_icon:hover {
+    cursor: pointer;
+}
+
+.mood_icon.fa-smile-beam:hover {
+    color: rgb(82, 255, 165);
+}
+
+.mood_icon.fa-smile-beam.selected {
+    color: rgb(82, 255, 165);
+    background-color: rgba(82, 255, 166, 0.1);
+}
+
+.mood_icon.fa-meh:hover {
+    color: rgb(232, 225, 92);
+}
+
+.mood_icon.fa-meh.selected {
+    color: rgb(232, 225, 92);
+    background-color: rgba(232, 225, 92, 0.1);
+}
+
+.mood_icon.fa-sad-tear:hover {
+    color: rgb(235, 96, 136);
+}
+
+.mood_icon.fa-sad-tear.selected {
+    color: rgb(235, 96, 136);
+    background-color: rgba(235, 96, 136, 0.1);
+}
+
+/* Mood blocks */
+.mood_list {
+    margin: auto;
+    max-width: 252px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+
+svg.mood_block {
+    /* Required for now to display mood blocks in Chrome */
+    width: 36px;
+    height: 36px;
+}
+
+svg.mood_block:hover {
+    filter: brightness(110%);
+    transform: scale(1.1);
+}
