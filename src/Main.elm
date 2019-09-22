@@ -1,26 +1,29 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
+import Browser.Navigation as Nav
 import Html exposing (div, h1, text)
+import Json.Decode as Decode exposing (Value)
+import Page.Home as Home
+import Page.Login as Login
+import Route exposing (Route)
+import Url exposing (Url)
 
 
-type alias Model =
-    { randString : String
-    , randNum : Int
-    }
+type Model
+    = Home
+    | Login
 
 
 
 -- MODEL
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { randString = "Hello world"
-      , randNum = 2
-      }
-    , Cmd.none
-    )
+{-| TODO: Add Viewer to handle logged in user info
+-}
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeViewer url navKey =
+    ( Home, Cmd.none )
 
 
 
@@ -50,6 +53,8 @@ view model =
 
 type Msg
     = NoOp
+    | ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -75,9 +80,11 @@ subscriptions model =
 
 main : Program () Model Msg
 main =
-    Browser.document
-        { init = \_ -> init
-        , view = view
-        , update = update
+    Browser.application
+        { init = init
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         , subscriptions = subscriptions
+        , update = update
+        , view = view
         }
